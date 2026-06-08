@@ -1,0 +1,22 @@
+# Vercel
+.vercel
+
+# Temporary working files
+.tmp/
+
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# Node (in case tooling is added later)
+node_modules/
+npm-debug.log*
+*.log

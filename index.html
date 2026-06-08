@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learn algorithm with LeetCode</title>
+<style>
+  /* ===== Design tokens ===== */
+  :root{
+    /* color — 3-level text hierarchy: primary / secondary body / auxiliary label */
+    --bg:#ffffff; --surface:#f5f6f7; --border:#e3e6e9;
+    --text:#1c1f23; --text-2:#454b53; --muted:#646b75; --accent:#1857c4;
+    --link-underline:#bcccea; /* calm underline; full accent on hover/focus */
+    --easy:#1a7f37; --medium:#9a6700; --hard:#b42318;
+    /* type scale (single rhythm, no per-element shrinking) */
+    --fs-meta:0.875rem; --fs-body:1rem; --fs-section:1.25rem; --fs-page:clamp(1.5rem,4vw,2rem);
+    /* weight scale (consistent, tokenized) */
+    --fw-regular:400; --fw-medium:500; --fw-semibold:600; --fw-bold:700;
+    --lh:1.7;
+    /* spacing scale */
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px;
+    --radius:6px;
+    --col-no:4rem; --col-diff:7.5rem; --col-teach:34%;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;
+    font-size:var(--fs-body); font-weight:var(--fw-regular); line-height:var(--lh); -webkit-font-smoothing:antialiased;
+  }
+  a{
+    color:var(--accent); text-decoration:underline; text-decoration-thickness:1px;
+    text-decoration-color:var(--link-underline); text-underline-offset:2px;
+  }
+  a:hover{text-decoration-color:var(--accent)}
+  a:focus-visible, .filter-btn:focus-visible, input:focus-visible, button:focus-visible{
+    outline:3px solid var(--accent); outline-offset:2px; border-radius:4px;
+  }
+
+  /* ===== Layout ===== */
+  .wrap{max-width:1000px; margin:0 auto; padding:0 var(--sp-4)}
+  header.hero{padding:var(--sp-8) 0 var(--sp-6)}
+  .hero h1{font-size:var(--fs-page); font-weight:var(--fw-bold); letter-spacing:-0.01em; margin:0; line-height:1.3}
+  .hero p{color:var(--muted); margin:var(--sp-3) 0 0}
+  .source-box{
+    margin-top:var(--sp-4); background:var(--surface); border-radius:var(--radius);
+    padding:var(--sp-4); color:var(--muted);
+  }
+  .source-box strong{color:var(--text)}
+
+  /* ===== Toolbar ===== */
+  .toolbar{
+    position:sticky; top:0; z-index:20; background:var(--bg);
+    border-bottom:1px solid var(--border); padding:var(--sp-3) 0;
+  }
+  .toolbar-inner{display:flex; gap:var(--sp-2); flex-wrap:wrap; align-items:center}
+  .toolbar input[type="search"]{
+    flex:1 1 220px; min-width:150px; background:var(--bg); border:1px solid var(--border);
+    color:var(--text); padding:var(--sp-2) var(--sp-3); border-radius:var(--radius);
+    font-size:var(--fs-body); font-family:inherit;
+  }
+  .filters{display:flex; gap:var(--sp-2); flex-wrap:wrap}
+  .filter-btn{
+    background:var(--bg); border:1px solid var(--border); color:var(--text);
+    padding:var(--sp-2) var(--sp-4); border-radius:var(--radius); font-size:var(--fs-meta);
+    font-family:inherit; cursor:pointer;
+  }
+  .filter-btn:hover{background:var(--surface)}
+  .filter-btn.active{background:var(--text); border-color:var(--text); color:var(--bg); font-weight:var(--fw-semibold)}
+
+  /* ===== Table of contents (text list, no boxes) ===== */
+  nav.toc{padding:var(--sp-8) 0 0}
+  nav.toc h2{font-size:var(--fs-meta); font-weight:var(--fw-semibold); letter-spacing:.06em; color:var(--muted); text-transform:uppercase; margin:0 0 var(--sp-3)}
+  .toc-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); column-gap:var(--sp-8); row-gap:var(--sp-1)}
+  .toc-grid a{
+    display:flex; gap:var(--sp-3); align-items:baseline; padding:var(--sp-2) 0;
+    color:var(--text); text-decoration:none;
+  }
+  .toc-grid a:hover{color:var(--accent)}
+  .toc-num{color:var(--muted); font-variant-numeric:tabular-nums}
+
+  /* ===== Sections (spacing separates; book/CS refs are quiet subtitles) ===== */
+  section.topic{padding-top:var(--sp-12)}
+  .topic-head h2{font-size:var(--fs-section); font-weight:var(--fw-semibold); margin:0 0 var(--sp-1); line-height:1.3}
+  .badge-chapter, .badge-cs{color:var(--muted); font-size:var(--fs-meta)}
+  .badge-cs::before{content:"·"; margin:0 .5em; color:var(--muted)}
+  .topic-desc{color:var(--text-2); margin:var(--sp-3) 0 var(--sp-4)}
+
+  /* ===== Problem table (columns align across every section) ===== */
+  table.prob{width:100%; border-collapse:collapse; table-layout:fixed; font-size:var(--fs-body)}
+  table.prob th:nth-child(1){width:var(--col-no)}
+  table.prob th:nth-child(3){width:var(--col-diff)}
+  table.prob th:nth-child(4){width:var(--col-teach)}
+  table.prob thead th{
+    text-align:left; color:var(--muted); font-weight:var(--fw-semibold);
+    padding:var(--sp-2) var(--sp-3); border-bottom:1px solid var(--border);
+  }
+  table.prob tbody td{padding:var(--sp-3); border-bottom:1px solid var(--border); vertical-align:baseline}
+  table.prob tbody tr:last-child td{border-bottom:0}
+  table.prob tbody tr:hover{background:var(--surface)}
+  .pnum{color:var(--muted); font-variant-numeric:tabular-nums}
+  .diff{font-weight:var(--fw-semibold); white-space:nowrap}
+  .diff::before{content:"●"; margin-right:.4em; font-size:.7em; vertical-align:middle}
+  .diff.easy{color:var(--easy)}
+  .diff.medium{color:var(--medium)}
+  .diff.hard{color:var(--hard)}
+  .teach{color:var(--text-2)}
+
+  .no-result{display:none; color:var(--muted); padding:var(--sp-4) 0; font-style:italic}
+
+  footer{padding:var(--sp-12) 0; color:var(--muted); font-size:var(--fs-meta); margin-top:var(--sp-8); border-top:1px solid var(--border)}
+  footer a{color:var(--accent)}
+
+  .back-top{
+    position:fixed; right:var(--sp-4); bottom:var(--sp-4); background:var(--bg); color:var(--text);
+    border:1px solid var(--border); width:44px; height:44px; border-radius:var(--radius);
+    font-size:1.1rem; cursor:pointer; display:none; align-items:center; justify-content:center;
+  }
+  .back-top:hover{background:var(--surface)}
+  .back-top.show{display:flex}
+
+  @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+
+  /* ===== Mobile: tables become stacked cards ===== */
+  @media (max-width:640px){
+    table.prob{table-layout:auto}
+    table.prob, table.prob thead,
+    table.prob tbody, table.prob tr, table.prob td{display:block; width:100%}
+    table.prob thead{display:none}
+    table.prob tbody tr{
+      border:1px solid var(--border); border-radius:var(--radius);
+      margin-bottom:var(--sp-3); padding:var(--sp-2) var(--sp-1);
+    }
+    table.prob tbody td{border:none; padding:var(--sp-1) var(--sp-4)}
+    table.prob tbody td.cell-name{font-weight:var(--fw-semibold)}
+    table.prob tbody td::before{
+      content:attr(data-label); display:block; color:var(--muted);
+      font-size:var(--fs-meta); margin-bottom:2px;
+    }
+    table.prob tbody td.cell-name::before, table.prob td.cell-diff::before{content:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Learn algorithm with LeetCode</h1>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="wrap toolbar-inner">
+    <input type="search" id="search" placeholder="keyword, problem name...">
+    <div class="filters" id="filters">
+      <span class="filter-btn active" data-diff="all">All</span>
+      <span class="filter-btn" data-diff="easy">Easy</span>
+      <span class="filter-btn" data-diff="medium">Medium</span>
+      <span class="filter-btn" data-diff="hard">Hard</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <nav class="toc">
+    <h2>目次</h2>
+    <div class="toc-grid">
+      <a href="#c1"><span class="toc-num">01</span> 計算量とアルゴリズム解析</a>
+      <a href="#c2"><span class="toc-num">02</span> 配列・文字列</a>
+      <a href="#c3"><span class="toc-num">03</span> 連結リスト</a>
+      <a href="#c4"><span class="toc-num">04</span> スタック・キュー</a>
+      <a href="#c5"><span class="toc-num">05</span> ハッシュテーブル・マップ</a>
+      <a href="#c6"><span class="toc-num">06</span> ヒープ・優先度付きキュー</a>
+      <a href="#c7"><span class="toc-num">07</span> 探索（線形・二分探索）</a>
+      <a href="#c8"><span class="toc-num">08</span> ソート</a>
+      <a href="#c9"><span class="toc-num">09</span> 木・二分探索木・平衡木</a>
+      <a href="#c10"><span class="toc-num">10</span> グラフ探索（BFS/DFS・トポロジカル）</a>
+      <a href="#c11"><span class="toc-num">11</span> 重み付きグラフ（最短経路・最小全域木）</a>
+      <a href="#c12"><span class="toc-num">12</span> 組合せ探索・バックトラッキング</a>
+      <a href="#c13"><span class="toc-num">13</span> 動的計画法</a>
+      <a href="#c14"><span class="toc-num">14</span> 文字列マッチング</a>
+    </div>
+  </nav>
+
+  <p class="no-result" id="noResult">該当する問題が見つかりませんでした。</p>
+
+  <!-- ===================== 01 ===================== -->
+  <section class="topic" id="c1">
+    <div class="topic-head">
+      <h2>01. 計算量とアルゴリズム解析</h2>
+      <span class="badge-chapter">Skiena 第2章 Algorithm Analysis</span>
+      <span class="badge-cs">CS2023: Big-O・漸化式・再帰</span>
+    </div>
+    <p class="topic-desc">時間・空間計算量、逐次探索と二分探索の差、再帰の漸化式といった基礎。実装そのものは易しいが、計算量を意識して解くことが目的です。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">704</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/binary-search/" target="_blank" rel="noopener">Binary Search</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">O(log n) の基本形</td></tr>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">69</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/sqrtx/" target="_blank" rel="noopener">Sqrt(x)</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">二分探索による対数時間化</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">50</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/powx-n/" target="_blank" rel="noopener">Pow(x, n)</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">分割統治・繰り返し二乗法</td></tr>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">509</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/fibonacci-number/" target="_blank" rel="noopener">Fibonacci Number</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">再帰の漸化式と指数 vs 線形時間</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 02 ===================== -->
+  <section class="topic" id="c2">
+    <div class="topic-head">
+      <h2>02. 配列・文字列</h2>
+      <span class="badge-chapter">Skiena 第3章 Data Structures</span>
+      <span class="badge-cs">CS2023: Arrays / Strings</span>
+    </div>
+    <p class="topic-desc">連続メモリ上のランダムアクセス、二ポインタ・スライディングウィンドウなど配列／文字列操作の基本パターン。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">1</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/two-sum/" target="_blank" rel="noopener">Two Sum</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">配列走査とハッシュの導入</td></tr>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">121</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/best-time-to-buy-and-sell-stock/" target="_blank" rel="noopener">Best Time to Buy and Sell Stock</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">一回走査での最小値追跡</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">238</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/product-of-array-except-self/" target="_blank" rel="noopener">Product of Array Except Self</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">接頭辞・接尾辞積</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">15</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/3sum/" target="_blank" rel="noopener">3Sum</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">ソート＋二ポインタ</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">3</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/longest-substring-without-repeating-characters/" target="_blank" rel="noopener">Longest Substring Without Repeating Characters</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">スライディングウィンドウ</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">56</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/merge-intervals/" target="_blank" rel="noopener">Merge Intervals</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">区間ソートとマージ</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 03 ===================== -->
+  <section class="topic" id="c3">
+    <div class="topic-head">
+      <h2>03. 連結リスト</h2>
+      <span class="badge-chapter">Skiena 第3章 Data Structures</span>
+      <span class="badge-cs">CS2023: Linked Lists（配列との比較・挿入削除）</span>
+    </div>
+    <p class="topic-desc">ポインタ操作、ダミーノード、二ポインタ（速い／遅い）による循環検出。配列との計算量トレードオフを体感します。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">206</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/reverse-linked-list/" target="_blank" rel="noopener">Reverse Linked List</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">ポインタ反転の基本</td></tr>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">21</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/merge-two-sorted-lists/" target="_blank" rel="noopener">Merge Two Sorted Lists</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">ダミーノードでのマージ</td></tr>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">141</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/linked-list-cycle/" target="_blank" rel="noopener">Linked List Cycle</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">Floyd の循環検出（速い・遅いポインタ）</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">19</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/remove-nth-node-from-end-of-list/" target="_blank" rel="noopener">Remove Nth Node From End of List</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">先行ポインタ</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">2</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/add-two-numbers/" target="_blank" rel="noopener">Add Two Numbers</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">連結リスト上の桁上がり</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">143</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/reorder-list/" target="_blank" rel="noopener">Reorder List</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">中点検出＋反転＋マージの複合</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 04 ===================== -->
+  <section class="topic" id="c4">
+    <div class="topic-head">
+      <h2>04. スタック・キュー</h2>
+      <span class="badge-chapter">Skiena 第3章 Data Structures</span>
+      <span class="badge-cs">CS2023: Stacks / Queues</span>
+    </div>
+    <p class="topic-desc">LIFO／FIFO のコンテナ抽象、相互実装、単調スタックといった応用。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">20</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/valid-parentheses/" target="_blank" rel="noopener">Valid Parentheses</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">スタックによる対応検査</td></tr>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">232</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/implement-queue-using-stacks/" target="_blank" rel="noopener">Implement Queue using Stacks</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">スタックでキューを構成</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">155</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/min-stack/" target="_blank" rel="noopener">Min Stack</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">補助スタックで O(1) 最小値</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">739</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/daily-temperatures/" target="_blank" rel="noopener">Daily Temperatures</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">単調スタック</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">150</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/evaluate-reverse-polish-notation/" target="_blank" rel="noopener">Evaluate Reverse Polish Notation</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">逆ポーランド記法の評価</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 05 ===================== -->
+  <section class="topic" id="c5">
+    <div class="topic-head">
+      <h2>05. ハッシュテーブル・マップ</h2>
+      <span class="badge-chapter">Skiena 第3章 Data Structures</span>
+      <span class="badge-cs">CS2023: Hash Tables / Maps</span>
+    </div>
+    <p class="topic-desc">平均 O(1) の挿入・検索、ハッシュによる集計・グルーピング。連結リストと組み合わせたキャッシュ設計も。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">217</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/contains-duplicate/" target="_blank" rel="noopener">Contains Duplicate</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">集合による重複検出</td></tr>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">242</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/valid-anagram/" target="_blank" rel="noopener">Valid Anagram</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">頻度マップ</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">49</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/group-anagrams/" target="_blank" rel="noopener">Group Anagrams</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">キー設計によるグルーピング</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">560</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/subarray-sum-equals-k/" target="_blank" rel="noopener">Subarray Sum Equals K</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">接頭辞和＋ハッシュ</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">128</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/longest-consecutive-sequence/" target="_blank" rel="noopener">Longest Consecutive Sequence</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">集合による O(n) 連続列</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">146</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/lru-cache/" target="_blank" rel="noopener">LRU Cache</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">ハッシュ＋双方向連結リスト</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 06 ===================== -->
+  <section class="topic" id="c6">
+    <div class="topic-head">
+      <h2>06. ヒープ・優先度付きキュー</h2>
+      <span class="badge-chapter">Skiena 第3・4章</span>
+      <span class="badge-cs">CS2023: Heaps</span>
+    </div>
+    <p class="topic-desc">二分ヒープによる最小／最大要素の O(log n) 取り出し。Top-K、ストリーム中央値、k 本のリストのマージなど。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">1046</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/last-stone-weight/" target="_blank" rel="noopener">Last Stone Weight</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">最大ヒープの基本操作</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">215</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/kth-largest-element-in-an-array/" target="_blank" rel="noopener">Kth Largest Element in an Array</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">ヒープ／クイックセレクト</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">347</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/top-k-frequent-elements/" target="_blank" rel="noopener">Top K Frequent Elements</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">頻度＋ヒープ／バケットソート</td></tr>
+        <tr data-diff="hard"><td class="pnum" data-label="番号">23</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/merge-k-sorted-lists/" target="_blank" rel="noopener">Merge k Sorted Lists</a></td><td class="cell-diff" data-label="難易度"><span class="diff hard">Hard</span></td><td class="teach" data-label="学べること">ヒープによる k 方向マージ</td></tr>
+        <tr data-diff="hard"><td class="pnum" data-label="番号">295</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/find-median-from-data-stream/" target="_blank" rel="noopener">Find Median from Data Stream</a></td><td class="cell-diff" data-label="難易度"><span class="diff hard">Hard</span></td><td class="teach" data-label="学べること">二つのヒープで中央値維持</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 07 ===================== -->
+  <section class="topic" id="c7">
+    <div class="topic-head">
+      <h2>07. 探索（線形・二分探索）</h2>
+      <span class="badge-chapter">Skiena 第4章 Sorting and Searching</span>
+      <span class="badge-cs">CS2023: 逐次探索・二分探索</span>
+    </div>
+    <p class="topic-desc">ソート済みデータでの二分探索、回転配列や境界条件、さらに「答えで二分探索する」発想。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">74</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/search-a-2d-matrix/" target="_blank" rel="noopener">Search a 2D Matrix</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">二次元を一次元とみなす二分探索</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">33</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/search-in-rotated-sorted-array/" target="_blank" rel="noopener">Search in Rotated Sorted Array</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">回転配列の二分探索</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">34</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/" target="_blank" rel="noopener">Find First and Last Position</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">下界・上界の二分探索</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">875</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/koko-eating-bananas/" target="_blank" rel="noopener">Koko Eating Bananas</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">答えの空間で二分探索</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 08 ===================== -->
+  <section class="topic" id="c8">
+    <div class="topic-head">
+      <h2>08. ソート</h2>
+      <span class="badge-chapter">Skiena 第4章 Sorting and Searching</span>
+      <span class="badge-cs">CS2023: 二次ソート・n log n ソート・字句順</span>
+    </div>
+    <p class="topic-desc">マージソート／クイックソートなどの n log n ソート、安定性、ソートを前処理として活用するパターン。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">912</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/sort-an-array/" target="_blank" rel="noopener">Sort an Array</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">マージ／クイックソートの自前実装</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">75</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/sort-colors/" target="_blank" rel="noopener">Sort Colors</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">三方向分割（Dutch national flag）</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">179</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/largest-number/" target="_blank" rel="noopener">Largest Number</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">カスタム比較・字句順ソート</td></tr>
+        <tr data-diff="hard"><td class="pnum" data-label="番号">315</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/count-of-smaller-numbers-after-self/" target="_blank" rel="noopener">Count of Smaller Numbers After Self</a></td><td class="cell-diff" data-label="難易度"><span class="diff hard">Hard</span></td><td class="teach" data-label="学べること">マージソートと反転数</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 09 ===================== -->
+  <section class="topic" id="c9">
+    <div class="topic-head">
+      <h2>09. 木・二分探索木・平衡木</h2>
+      <span class="badge-chapter">Skiena 第3章 Data Structures</span>
+      <span class="badge-cs">CS2023: Trees / 走査 / 木の平衡化</span>
+    </div>
+    <p class="topic-desc">木の走査（前順・中順・後順・レベル順）、BST 性質、平衡判定。再帰と BFS/DFS の基礎固め。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">104</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/" target="_blank" rel="noopener">Maximum Depth of Binary Tree</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">再帰の基礎</td></tr>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">226</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/invert-binary-tree/" target="_blank" rel="noopener">Invert Binary Tree</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">木の再帰的変換</td></tr>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">110</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/balanced-binary-tree/" target="_blank" rel="noopener">Balanced Binary Tree</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">高さと平衡の判定</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">102</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/binary-tree-level-order-traversal/" target="_blank" rel="noopener">Binary Tree Level Order Traversal</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">レベル順走査（BFS）</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">98</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/validate-binary-search-tree/" target="_blank" rel="noopener">Validate Binary Search Tree</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">BST 不変条件の検証</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">230</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/kth-smallest-element-in-a-bst/" target="_blank" rel="noopener">Kth Smallest Element in a BST</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">中順走査で整列順アクセス</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">235</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/" target="_blank" rel="noopener">Lowest Common Ancestor of a BST</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">BST 性質を使った探索</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">208</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/implement-trie-prefix-tree/" target="_blank" rel="noopener">Implement Trie (Prefix Tree)</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">トライ木（文字列用の木）</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 10 ===================== -->
+  <section class="topic" id="c10">
+    <div class="topic-head">
+      <h2>10. グラフ探索（BFS / DFS・トポロジカルソート）</h2>
+      <span class="badge-chapter">Skiena 第5章 Graph Traversal</span>
+      <span class="badge-cs">CS2023: 深さ優先・幅優先・トポロジカルソート</span>
+    </div>
+    <p class="topic-desc">隣接リスト表現、連結成分、グリッド上の探索、閉路検出と依存関係のトポロジカル順序付け。Union-Find も含む。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">200</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/number-of-islands/" target="_blank" rel="noopener">Number of Islands</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">グリッド上の DFS/BFS と連結成分</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">133</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/clone-graph/" target="_blank" rel="noopener">Clone Graph</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">隣接リストの走査と複製</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">994</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/rotting-oranges/" target="_blank" rel="noopener">Rotting Oranges</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">多始点 BFS</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">207</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/course-schedule/" target="_blank" rel="noopener">Course Schedule</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">閉路検出（トポロジカルソート）</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">210</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/course-schedule-ii/" target="_blank" rel="noopener">Course Schedule II</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">トポロジカル順序の出力（Kahn 法）</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">684</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/redundant-connection/" target="_blank" rel="noopener">Redundant Connection</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">Union-Find（素集合データ構造）</td></tr>
+        <tr data-diff="hard"><td class="pnum" data-label="番号">127</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/word-ladder/" target="_blank" rel="noopener">Word Ladder</a></td><td class="cell-diff" data-label="難易度"><span class="diff hard">Hard</span></td><td class="teach" data-label="学べること">暗黙グラフ上の最短 BFS</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 11 ===================== -->
+  <section class="topic" id="c11">
+    <div class="topic-head">
+      <h2>11. 重み付きグラフ（最短経路・最小全域木）</h2>
+      <span class="badge-chapter">Skiena 第6章 Weighted Graph Algorithms</span>
+      <span class="badge-cs">CS2023: 最短経路・最小全域木</span>
+    </div>
+    <p class="topic-desc">Dijkstra / Bellman-Ford 系の最短経路、Prim / Kruskal の最小全域木。優先度付きキューや Union-Find が土台になります。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">743</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/network-delay-time/" target="_blank" rel="noopener">Network Delay Time</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">Dijkstra 法</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">787</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/cheapest-flights-within-k-stops/" target="_blank" rel="noopener">Cheapest Flights Within K Stops</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">Bellman-Ford（経由数制約）</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">1584</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/min-cost-to-connect-all-points/" target="_blank" rel="noopener">Min Cost to Connect All Points</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">最小全域木（Prim / Kruskal）</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">1631</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/path-with-minimum-effort/" target="_blank" rel="noopener">Path With Minimum Effort</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">Dijkstra の変形（ボトルネック最短）</td></tr>
+        <tr data-diff="hard"><td class="pnum" data-label="番号">778</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/swim-in-rising-water/" target="_blank" rel="noopener">Swim in Rising Water</a></td><td class="cell-diff" data-label="難易度"><span class="diff hard">Hard</span></td><td class="teach" data-label="学べること">優先度付きキュー＋二分探索的発想</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 12 ===================== -->
+  <section class="topic" id="c12">
+    <div class="topic-head">
+      <h2>12. 組合せ探索・バックトラッキング</h2>
+      <span class="badge-chapter">Skiena 第7章 Combinatorial Search</span>
+      <span class="badge-cs">CS2023: 探索戦略（best-first 含む）</span>
+    </div>
+    <p class="topic-desc">部分集合・順列・組合せの全列挙、枝刈り、盤面探索。再帰による状態空間の探索を体系的に学びます。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">78</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/subsets/" target="_blank" rel="noopener">Subsets</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">部分集合の列挙</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">46</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/permutations/" target="_blank" rel="noopener">Permutations</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">順列の列挙</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">39</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/combination-sum/" target="_blank" rel="noopener">Combination Sum</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">重複ありの組合せ探索</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">22</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/generate-parentheses/" target="_blank" rel="noopener">Generate Parentheses</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">制約付き生成と枝刈り</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">79</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/word-search/" target="_blank" rel="noopener">Word Search</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">グリッド上の DFS バックトラッキング</td></tr>
+        <tr data-diff="hard"><td class="pnum" data-label="番号">51</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/n-queens/" target="_blank" rel="noopener">N-Queens</a></td><td class="cell-diff" data-label="難易度"><span class="diff hard">Hard</span></td><td class="teach" data-label="学べること">制約充足と枝刈りの王道</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 13 ===================== -->
+  <section class="topic" id="c13">
+    <div class="topic-head">
+      <h2>13. 動的計画法</h2>
+      <span class="badge-chapter">Skiena 第8章 Dynamic Programming</span>
+      <span class="badge-cs">CS2023: アルゴリズム戦略</span>
+    </div>
+    <p class="topic-desc">部分問題の重なりと最適部分構造。メモ化（トップダウン）と表計算（ボトムアップ）の両アプローチ。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">70</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/climbing-stairs/" target="_blank" rel="noopener">Climbing Stairs</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">DP の入門（1次元）</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">198</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/house-robber/" target="_blank" rel="noopener">House Robber</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">選択・非選択の遷移</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">322</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/coin-change/" target="_blank" rel="noopener">Coin Change</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">無制限ナップサック型</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">300</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/longest-increasing-subsequence/" target="_blank" rel="noopener">Longest Increasing Subsequence</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">部分列 DP・二分探索高速化</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">1143</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/longest-common-subsequence/" target="_blank" rel="noopener">Longest Common Subsequence</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">2次元 DP の基本形</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">416</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/partition-equal-subset-sum/" target="_blank" rel="noopener">Partition Equal Subset Sum</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">0/1 ナップサック</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">139</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/word-break/" target="_blank" rel="noopener">Word Break</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">文字列の分割 DP</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">72</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/edit-distance/" target="_blank" rel="noopener">Edit Distance</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">編集距離（2次元 DP）</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== 14 ===================== -->
+  <section class="topic" id="c14">
+    <div class="topic-head">
+      <h2>14. 文字列マッチング</h2>
+      <span class="badge-chapter">Skiena 第3・21章（文字列）</span>
+      <span class="badge-cs">CS2023: 文字列照合</span>
+    </div>
+    <p class="topic-desc">部分文字列検索、パターン照合、回文。素朴法から KMP の考え方へつなげます。</p>
+    <table class="prob">
+      <thead><tr><th>番号</th><th>問題</th><th>難易度</th><th>学べること</th></tr></thead>
+      <tbody>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">28</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/find-the-index-of-the-first-occurrence-in-a-string/" target="_blank" rel="noopener">Find the Index of the First Occurrence in a String</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">部分文字列検索（KMP の入口）</td></tr>
+        <tr data-diff="easy"><td class="pnum" data-label="番号">459</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/repeated-substring-pattern/" target="_blank" rel="noopener">Repeated Substring Pattern</a></td><td class="cell-diff" data-label="難易度"><span class="diff easy">Easy</span></td><td class="teach" data-label="学べること">周期性とパターン照合</td></tr>
+        <tr data-diff="medium"><td class="pnum" data-label="番号">5</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/longest-palindromic-substring/" target="_blank" rel="noopener">Longest Palindromic Substring</a></td><td class="cell-diff" data-label="難易度"><span class="diff medium">Medium</span></td><td class="teach" data-label="学べること">中心展開・回文判定</td></tr>
+        <tr data-diff="hard"><td class="pnum" data-label="番号">214</td><td class="cell-name" data-label="問題"><a href="https://leetcode.com/problems/shortest-palindrome/" target="_blank" rel="noopener">Shortest Palindrome</a></td><td class="cell-diff" data-label="難易度"><span class="diff hard">Hard</span></td><td class="teach" data-label="学べること">KMP の接頭辞関数の応用</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <p><strong>ref.</strong></p>
+    <p>・ACM/IEEE-CS/AAAI <a href="https://csed.acm.org/" target="_blank" rel="noopener">Computer Science Curricula 2023 (CS2023)</a>
+       — AL (Algorithmic Foundations) / Fundamental Data Structures and Algorithms</p>
+    <p>・Steven S. Skiena, <a href="https://www.algorist.com/" target="_blank" rel="noopener">The Algorithm Design Manual</a>, 3rd Edition（丸善出版 訳書：
+       <a href="https://www.maruzen-publishing.co.jp/book/b10122540.html" target="_blank" rel="noopener">上巻</a>・
+       <a href="https://www.maruzen-publishing.co.jp/book/b10122541.html" target="_blank" rel="noopener">下巻</a>）</p>
+  </footer>
+</div>
+
+<button class="back-top" id="backTop" aria-label="トップへ戻る">↑</button>
+
+<script>
+  const search = document.getElementById('search');
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const rows = Array.from(document.querySelectorAll('table.prob tbody tr'));
+  const sections = Array.from(document.querySelectorAll('section.topic'));
+  const noResult = document.getElementById('noResult');
+  let activeDiff = 'all';
+
+  // 正規化: NFKC（全半角統一）＋小文字化＋カタカナ→ひらがな
+  function normalize(s){
+    s = (s || '').normalize('NFKC').toLowerCase();
+    let out = '';
+    for(const ch of s){
+      const c = ch.codePointAt(0);
+      out += (c >= 0x30A1 && c <= 0x30F6) ? String.fromCodePoint(c - 0x60) : ch;
+    }
+    return out;
+  }
+
+  // 類義語グループ（相互方向）: 表記ゆれ・和英・誤記・関連語を吸収
+  const SYN = [
+    ['探索','捜索','捜査','検索','サーチ','search','二分探索','binary search','線形探索'],
+    ['グラフ','graph','bfs','dfs','幅優先','深さ優先','幅優先探索','深さ優先探索','隣接'],
+    ['経路','パス','path','最短経路','最短','route','ダイクストラ','dijkstra','ベルマンフォード','bellman'],
+    ['全域木','最小全域木','mst','prim','kruskal','プリム','クラスカル'],
+    ['木','ツリー','tree','二分木','二分探索木','bst','trie','トライ','平衡','走査'],
+    ['ソート','整列','sort','sorting','マージソート','クイックソート'],
+    ['リスト','list','連結リスト','linked list','ノード','ポインタ'],
+    ['スタック','stack','単調スタック'],
+    ['キュー','queue','優先度付きキュー','priority queue'],
+    ['ハッシュ','hash','マップ','map','辞書','集合','set'],
+    ['ヒープ','heap','優先度','priority','top-k'],
+    ['動的計画法','dp','dynamic programming','メモ化','漸化','ナップサック','knapsack'],
+    ['文字列','string','文字','パターン','回文','palindrome','kmp','部分文字列'],
+    ['再帰','recursion','バックトラッキング','backtracking','枝刈り','組合せ','順列','部分集合'],
+    ['計算量','オーダー','big-o','漸近','complexity'],
+    ['配列','array','二ポインタ','two pointer','スライディングウィンドウ','sliding window'],
+    ['easy','易','やさしい','初級'],
+    ['medium','中級','ふつう'],
+    ['hard','難','むずかしい','上級'],
+  ].map(g => g.map(normalize));
+
+  // クエリ語を類義語へ展開（双方向の部分一致でグループ判定）
+  function expand(token){
+    const set = new Set([token]);
+    for(const g of SYN){
+      if(g.some(w => w.includes(token) || token.includes(w))) g.forEach(w => set.add(w));
+    }
+    return [...set];
+  }
+
+  // 各行の検索対象を事前計算: 行テキスト＋親セクションの見出し・概要・対応表記
+  const index = rows.map(r=>{
+    const sec = r.closest('section.topic');
+    let ctx = '';
+    if(sec){
+      const head = sec.querySelector('.topic-head');
+      const desc = sec.querySelector('.topic-desc');
+      if(head) ctx += ' ' + head.textContent;
+      if(desc) ctx += ' ' + desc.textContent;
+    }
+    return { row:r, hay: normalize(r.textContent + ' ' + ctx) };
+  });
+
+  // スペース区切りの全語AND。各語は類義語のいずれかが含まれれば一致
+  function rowMatches(hay, q){
+    if(!q) return true;
+    return q.split(/\s+/).filter(Boolean)
+      .every(tok => expand(tok).some(t => hay.includes(t)));
+  }
+
+  function apply(){
+    const q = normalize(search.value.trim());
+    let visibleTotal = 0;
+    index.forEach(({row, hay})=>{
+      const diff = row.getAttribute('data-diff');
+      const show = rowMatches(hay, q) && (activeDiff === 'all' || diff === activeDiff);
+      row.style.display = show ? '' : 'none';
+      if(show) visibleTotal++;
+    });
+    // hide empty sections
+    sections.forEach(s=>{
+      const anyVisible = Array.from(s.querySelectorAll('tbody tr')).some(r=>r.style.display !== 'none');
+      s.style.display = anyVisible ? '' : 'none';
+    });
+    noResult.style.display = visibleTotal === 0 ? 'block' : 'none';
+  }
+
+  search.addEventListener('input', apply);
+  filterBtns.forEach(b=>b.addEventListener('click', ()=>{
+    filterBtns.forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    activeDiff = b.getAttribute('data-diff');
+    apply();
+  }));
+
+  // back to top
+  const backTop = document.getElementById('backTop');
+  window.addEventListener('scroll', ()=>{
+    backTop.classList.toggle('show', window.scrollY > 600);
+  });
+  backTop.addEventListener('click', ()=>window.scrollTo({top:0, behavior:'smooth'}));
+</script>
+</body>
+</html>
+
