@@ -17,3 +17,7 @@ and the chapters of Steven Skiena's *The Algorithm Design Manual* (3rd ed).
 ## Usage
 
 Open `index.html` in a browser, or visit the live site above.
+
+## License
+
+[MIT](LICENSE)
