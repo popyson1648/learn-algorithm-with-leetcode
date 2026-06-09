@@ -40,7 +40,8 @@
     --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px;
     --radius:6px;
     /* problem list shared column template (header + rows align via subgrid) */
-    --prob-grid:max-content minmax(0,1.5fr) minmax(0,1.3fr) max-content;
+    --prob-num-col:4ch;
+    --prob-grid:var(--prob-num-col) minmax(0,1.5fr) minmax(0,1.3fr) max-content;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
@@ -159,13 +160,14 @@
     font-size:var(--fs-meta); font-weight:var(--fw-semibold); letter-spacing:.04em;
     color:var(--muted); text-transform:uppercase;
   }
+  .prob-head span:first-child{text-align:right}
   .prob-head .h-diff{text-align:right}
   .prob-item{
     grid-column:1/-1; display:grid; grid-template-columns:subgrid; align-items:baseline;
     padding:var(--sp-3) 0; border-bottom:1px solid var(--border);
   }
   .prob-item:hover{background:var(--surface)}
-  .pnum{color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap}
+  .pnum{color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; text-align:right}
   .cell-name{min-width:0; font-weight:var(--fw-medium)}
   .cell-desc{min-width:0; color:var(--text-2); font-size:var(--fs-meta)}
   .cell-diff{justify-self:end}
@@ -207,7 +209,7 @@
     .prob-head{display:none}
     ul.prob{display:block; padding:0; border-top:none}
     .prob-item{
-      display:grid; grid-template-columns:auto 1fr max-content;
+      display:grid; grid-template-columns:var(--prob-num-col) minmax(0,1fr) max-content;
       grid-template-areas:"num name diff" "num desc desc";
       column-gap:var(--sp-3); row-gap:2px; align-items:start;
       padding:var(--sp-3) var(--sp-1);
@@ -840,4 +842,3 @@
 </script>
 </body>
 </html>
-
