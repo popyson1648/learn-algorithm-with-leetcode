@@ -47,8 +47,21 @@
   /* ===== Layout ===== */
   .wrap{max-width:1000px; margin:0 auto; padding:0 var(--sp-4)}
   header.hero{padding:var(--sp-8) 0 var(--sp-6)}
+  .hero-inner{display:flex; align-items:start; justify-content:space-between; gap:var(--sp-4)}
   .hero h1{font-size:var(--fs-page); font-weight:var(--fw-bold); letter-spacing:-0.01em; margin:0; line-height:1.3}
   .hero p{color:var(--muted); margin:var(--sp-3) 0 0}
+  .lang-switch{
+    display:inline-flex; flex:0 0 auto; border:1px solid var(--border); border-radius:var(--radius);
+    background:var(--surface); padding:2px; gap:2px;
+  }
+  .lang-btn{
+    border:0; border-radius:calc(var(--radius) - 2px); background:transparent; color:var(--muted);
+    min-width:44px; min-height:36px; padding:0 var(--sp-3); cursor:pointer;
+    font-family:inherit; font-size:var(--fs-meta); font-weight:var(--fw-semibold);
+    transition:background-color .08s ease,color .08s ease;
+  }
+  .lang-btn:hover{color:var(--text)}
+  .lang-btn.active{background:var(--bg); color:var(--text)}
 
   /* ===== Toolbar ===== */
   .toolbar{
@@ -163,10 +176,11 @@
 
   /* ===== Mobile: collapse aligned list into stacked cards ===== */
   @media (max-width:640px){
+    .hero-inner{align-items:start}
+    .lang-btn{min-width:40px; padding:0 var(--sp-2)}
     .toolbar input[type="search"]{flex:1 1 100%}
     .filters{width:100%}
     .filter-btn{flex:1 1 0; justify-content:center; padding:var(--sp-2) var(--sp-1)}
-
     .prob-head{display:none}
     ul.prob{display:block; padding:0; border-top:none}
     .prob-item{
@@ -185,8 +199,12 @@
 <body>
 
 <header class="hero">
-  <div class="wrap">
-    <h1>Learn algorithm with LeetCode</h1>
+  <div class="wrap hero-inner">
+    <h1 data-i18n="title">Learn algorithm with LeetCode</h1>
+    <div class="lang-switch" role="group" aria-label="言語切替">
+      <button class="lang-btn active" type="button" data-lang="ja" aria-pressed="true">JP</button>
+      <button class="lang-btn" type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
   </div>
 </header>
 
@@ -457,11 +475,11 @@
     </ul>
   </section>
 
-  <footer>
-    <p>Created by <a href="https://x.com/popyson1648" target="_blank" rel="noopener">@popyson1648</a></p>
-  </footer>
-
 </div>
+
+<footer>
+  <p class="wrap">Created by <a href="https://x.com/popyson1648" target="_blank" rel="noopener">@popyson1648</a></p>
+</footer>
 
 <button class="back-top" id="backTop" aria-label="トップへ戻る">↑</button>
 
@@ -471,7 +489,112 @@
   const rows = Array.from(document.querySelectorAll('.prob-item'));
   const sections = Array.from(document.querySelectorAll('section.topic'));
   const noResult = document.getElementById('noResult');
+  const langBtns = document.querySelectorAll('.lang-btn');
   let activeDiff = 'all';
+  let index = [];
+
+  const I18N = {
+    ja: {
+      htmlLang: 'ja',
+      langLabel: '言語切替',
+      searchPlaceholder: '問題名・番号・キーワードで検索',
+      toc: '目次',
+      noResult: '該当する問題が見つかりませんでした。',
+      footer: 'Created by',
+      backTop: 'トップへ戻る',
+      tableHeaders: ['No.', '問題', 'ポイント', '難易度'],
+      filters: { all: 'All', easy: 'Easy', medium: 'Medium', hard: 'Hard' },
+      topics: [
+        ['01. 計算量とアルゴリズム解析', '時間・空間計算量、逐次探索と二分探索の差、再帰の漸化式といった基礎。実装そのものは易しいが、計算量を意識して解くことが目的です。'],
+        ['02. 配列・文字列', '連続メモリ上のランダムアクセス、二ポインタ・スライディングウィンドウなど配列／文字列操作の基本パターン。'],
+        ['03. 連結リスト', 'ポインタ操作、ダミーノード、二ポインタ（速い／遅い）による循環検出。配列との計算量トレードオフを体感します。'],
+        ['04. スタック・キュー', 'LIFO／FIFO のコンテナ抽象、相互実装、単調スタックといった応用。'],
+        ['05. ハッシュテーブル・マップ', '平均 O(1) の挿入・検索、ハッシュによる集計・グルーピング。連結リストと組み合わせたキャッシュ設計も。'],
+        ['06. ヒープ・優先度付きキュー', '二分ヒープによる最小／最大要素の O(log n) 取り出し。Top-K、ストリーム中央値、k 本のリストのマージなど。'],
+        ['07. 探索（線形・二分探索）', 'ソート済みデータでの二分探索、回転配列や境界条件、さらに「答えで二分探索する」発想。'],
+        ['08. ソート', 'マージソート／クイックソートなどの n log n ソート、安定性、ソートを前処理として活用するパターン。'],
+        ['09. 木・二分探索木・平衡木', '木の走査（前順・中順・後順・レベル順）、BST 性質、平衡判定。再帰と BFS/DFS の基礎固め。'],
+        ['10. グラフ探索（BFS / DFS・トポロジカルソート）', '隣接リスト表現、連結成分、グリッド上の探索、閉路検出と依存関係のトポロジカル順序付け。Union-Find も含む。'],
+        ['11. 重み付きグラフ（最短経路・最小全域木）', 'Dijkstra / Bellman-Ford 系の最短経路、Prim / Kruskal の最小全域木。優先度付きキューや Union-Find が土台になります。'],
+        ['12. 組合せ探索・バックトラッキング', '部分集合・順列・組合せの全列挙、枝刈り、盤面探索。再帰による状態空間の探索を体系的に学びます。'],
+        ['13. 動的計画法', '部分問題の重なりと最適部分構造。メモ化（トップダウン）と表計算（ボトムアップ）の両アプローチ。'],
+        ['14. 文字列マッチング', '部分文字列検索、パターン照合、回文。素朴法から KMP の考え方へつなげます。'],
+      ],
+      tocItems: [
+        '計算量とアルゴリズム解析', '配列・文字列', '連結リスト', 'スタック・キュー',
+        'ハッシュテーブル・マップ', 'ヒープ・優先度付きキュー', '探索（線形・二分探索）', 'ソート',
+        '木・二分探索木・平衡木', 'グラフ探索（BFS/DFS・トポロジカル）',
+        '重み付きグラフ（最短経路・最小全域木）', '組合せ探索・バックトラッキング',
+        '動的計画法', '文字列マッチング',
+      ],
+      points: [
+        'O(log n) の基本形', '二分探索による対数時間化', '分割統治・繰り返し二乗法', '再帰の漸化式と指数 vs 線形時間',
+        '配列走査とハッシュの導入', '一回走査での最小値追跡', '接頭辞・接尾辞積', 'ソート＋二ポインタ', 'スライディングウィンドウ', '区間ソートとマージ',
+        'ポインタ反転の基本', 'ダミーノードでのマージ', 'Floyd の循環検出（速い・遅いポインタ）', '先行ポインタ', '連結リスト上の桁上がり', '中点検出＋反転＋マージの複合',
+        'スタックによる対応検査', 'スタックでキューを構成', '補助スタックで O(1) 最小値', '単調スタック', '逆ポーランド記法の評価',
+        '集合による重複検出', '頻度マップ', 'キー設計によるグルーピング', '接頭辞和＋ハッシュ', '集合による O(n) 連続列', 'ハッシュ＋双方向連結リスト',
+        '最大ヒープの基本操作', 'ヒープ／クイックセレクト', '頻度＋ヒープ／バケットソート', 'ヒープによる k 方向マージ', '二つのヒープで中央値維持',
+        '二次元を一次元とみなす二分探索', '回転配列の二分探索', '下界・上界の二分探索', '答えの空間で二分探索',
+        'マージ／クイックソートの自前実装', '三方向分割（Dutch national flag）', 'カスタム比較・字句順ソート', 'マージソートと反転数',
+        '再帰の基礎', '木の再帰的変換', '高さと平衡の判定', 'レベル順走査（BFS）', 'BST 不変条件の検証', '中順走査で整列順アクセス', 'BST 性質を使った探索', 'トライ木（文字列用の木）',
+        'グリッド上の DFS/BFS と連結成分', '隣接リストの走査と複製', '多始点 BFS', '閉路検出（トポロジカルソート）', 'トポロジカル順序の出力（Kahn 法）', 'Union-Find（素集合データ構造）', '暗黙グラフ上の最短 BFS',
+        'Dijkstra 法', 'Bellman-Ford（経由数制約）', '最小全域木（Prim / Kruskal）', 'Dijkstra の変形（ボトルネック最短）', '優先度付きキュー＋二分探索的発想',
+        '部分集合の列挙', '順列の列挙', '重複ありの組合せ探索', '制約付き生成と枝刈り', 'グリッド上の DFS バックトラッキング', '制約充足と枝刈りの王道',
+        'DP の入門（1次元）', '選択・非選択の遷移', '無制限ナップサック型', '部分列 DP・二分探索高速化', '2次元 DP の基本形', '0/1 ナップサック', '文字列の分割 DP', '編集距離（2次元 DP）',
+        '部分文字列検索（KMP の入口）', '周期性とパターン照合', '中心展開・回文判定', 'KMP の接頭辞関数の応用',
+      ],
+    },
+    en: {
+      htmlLang: 'en',
+      langLabel: 'Language switcher',
+      searchPlaceholder: 'Search by problem, number, or keyword',
+      toc: 'Contents',
+      noResult: 'No matching problems found.',
+      footer: 'Created by',
+      backTop: 'Back to top',
+      tableHeaders: ['No.', 'Problem', 'Focus', 'Difficulty'],
+      filters: { all: 'All', easy: 'Easy', medium: 'Medium', hard: 'Hard' },
+      topics: [
+        ['01. Complexity and Algorithm Analysis', 'Fundamentals such as time and space complexity, linear vs. binary search, and recurrence relations for recursion. The implementations are simple, but the goal is to reason about complexity.'],
+        ['02. Arrays and Strings', 'Core patterns for array and string work, including random access on contiguous memory, two pointers, and sliding windows.'],
+        ['03. Linked Lists', 'Pointer manipulation, dummy nodes, and cycle detection with fast and slow pointers. This section highlights tradeoffs against arrays.'],
+        ['04. Stacks and Queues', 'LIFO and FIFO abstractions, implementing one structure with another, and applications such as monotonic stacks.'],
+        ['05. Hash Tables and Maps', 'Average O(1) insertion and lookup, aggregation, grouping, and cache design when combined with linked lists.'],
+        ['06. Heaps and Priority Queues', 'Extracting minimum or maximum values in O(log n) with binary heaps. Covers Top-K, streaming medians, and merging k lists.'],
+        ['07. Search: Linear and Binary', 'Binary search on sorted data, rotated arrays, boundary handling, and binary searching over the answer space.'],
+        ['08. Sorting', 'O(n log n) sorting such as merge sort and quicksort, stability, and using sorting as preprocessing.'],
+        ['09. Trees, BSTs, and Balanced Trees', 'Tree traversals, BST properties, balance checks, and practice with recursion, BFS, and DFS.'],
+        ['10. Graph Search: BFS, DFS, and Topological Sort', 'Adjacency lists, connected components, grid search, cycle detection, dependency ordering, and Union-Find.'],
+        ['11. Weighted Graphs: Shortest Paths and MST', 'Shortest paths with Dijkstra and Bellman-Ford, and minimum spanning trees with Prim and Kruskal. Priority queues and Union-Find are the foundation.'],
+        ['12. Combinatorial Search and Backtracking', 'Enumerating subsets, permutations, and combinations, plus pruning and board search with recursive state-space exploration.'],
+        ['13. Dynamic Programming', 'Overlapping subproblems and optimal substructure, using both top-down memoization and bottom-up tabulation.'],
+        ['14. String Matching', 'Substring search, pattern matching, and palindromes, moving from naive methods toward the ideas behind KMP.'],
+      ],
+      tocItems: [
+        'Complexity and Algorithm Analysis', 'Arrays and Strings', 'Linked Lists', 'Stacks and Queues',
+        'Hash Tables and Maps', 'Heaps and Priority Queues', 'Search: Linear and Binary', 'Sorting',
+        'Trees, BSTs, and Balanced Trees', 'Graph Search: BFS/DFS and Topological',
+        'Weighted Graphs: Shortest Paths and MST', 'Combinatorial Search and Backtracking',
+        'Dynamic Programming', 'String Matching',
+      ],
+      points: [
+        'Basic O(log n) pattern', 'Logarithmic-time search with binary search', 'Divide and conquer; exponentiation by squaring', 'Recurrence relations: exponential vs. linear time',
+        'Array scan and hash map introduction', 'Track the minimum in one pass', 'Prefix and suffix products', 'Sorting plus two pointers', 'Sliding window', 'Sort and merge intervals',
+        'Core pointer reversal', 'Merge with a dummy node', 'Floyd cycle detection with fast and slow pointers', 'Leading pointer technique', 'Carry handling on linked lists', 'Find middle, reverse, then merge',
+        'Match pairs with a stack', 'Build a queue from stacks', 'Auxiliary stack for O(1) minimum', 'Monotonic stack', 'Evaluate reverse Polish notation',
+        'Detect duplicates with a set', 'Frequency map', 'Grouping through key design', 'Prefix sum plus hash map', 'O(n) consecutive sequence with a set', 'Hash map plus doubly linked list',
+        'Basic max-heap operations', 'Heap or quickselect', 'Frequency plus heap or bucket sort', 'K-way merge with a heap', 'Maintain median with two heaps',
+        'Treat a 2D matrix as 1D for binary search', 'Binary search on a rotated array', 'Lower and upper bounds with binary search', 'Binary search over the answer space',
+        'Implement merge sort or quicksort', 'Three-way partitioning: Dutch national flag', 'Custom comparator and lexicographic ordering', 'Merge sort and inversion counts',
+        'Recursion basics', 'Recursive tree transformation', 'Height and balance checks', 'Level-order traversal with BFS', 'Validate BST invariants', 'Inorder traversal for sorted access', 'Search with BST properties', 'Trie for string keys',
+        'DFS/BFS on grids and connected components', 'Traverse and clone an adjacency list', 'Multi-source BFS', 'Cycle detection with topological sort', 'Output topological order with Kahn algorithm', 'Union-Find disjoint set structure', 'Shortest BFS on an implicit graph',
+        'Dijkstra algorithm', 'Bellman-Ford with stop constraints', 'Minimum spanning tree with Prim or Kruskal', 'Dijkstra variant for bottleneck paths', 'Priority queue plus binary-search style reasoning',
+        'Enumerate subsets', 'Enumerate permutations', 'Combination search with repeated choices', 'Constrained generation and pruning', 'DFS backtracking on a grid', 'Classic constraint solving and pruning',
+        'Introductory one-dimensional DP', 'Transition between taking and skipping', 'Unbounded knapsack pattern', 'Subsequence DP with binary-search optimization', 'Core two-dimensional DP', '0/1 knapsack', 'DP for string segmentation', 'Edit distance with two-dimensional DP',
+        'Substring search as an entry point to KMP', 'Periodicity and pattern matching', 'Center expansion and palindrome checks', 'Apply the KMP prefix function',
+      ],
+    },
+  };
 
   // 正規化: NFKC（全半角統一）＋小文字化＋カタカナ→ひらがな
   function normalize(s){
@@ -517,17 +640,128 @@
   }
 
   // 各行の検索対象を事前計算: 行テキスト＋親セクションの見出し・概要・対応表記
-  const index = rows.map(r=>{
-    const sec = r.closest('section.topic');
-    let ctx = '';
-    if(sec){
-      const head = sec.querySelector('.topic-head');
-      const desc = sec.querySelector('.topic-desc');
-      if(head) ctx += ' ' + head.textContent;
-      if(desc) ctx += ' ' + desc.textContent;
+  function buildIndex(){
+    index = rows.map(r=>{
+      const sec = r.closest('section.topic');
+      let ctx = '';
+      if(sec){
+        const head = sec.querySelector('.topic-head');
+        const desc = sec.querySelector('.topic-desc');
+        if(head) ctx += ' ' + head.textContent;
+        if(desc) ctx += ' ' + desc.textContent;
+      }
+      return { row:r, hay: normalize(r.textContent + ' ' + ctx) };
+    });
+  }
+
+  function getStoredLanguage(){
+    try{
+      return localStorage.getItem('preferredLang');
+    }catch(_err){
+      return null;
     }
-    return { row:r, hay: normalize(r.textContent + ' ' + ctx) };
-  });
+  }
+
+  function setStoredLanguage(lang){
+    try{
+      localStorage.setItem('preferredLang', lang);
+    }catch(_err){
+      // Ignore storage failures so language switching still works.
+    }
+  }
+
+  function detectDefaultLanguage(){
+    const languages = [
+      ...(navigator.languages || []),
+      navigator.language,
+      navigator.userLanguage,
+    ].filter(Boolean);
+    return languages.some(lang => /^ja(?:-|$)/i.test(lang)) ? 'ja' : 'en';
+  }
+
+  function parseTraceCountry(traceText){
+    const loc = traceText.split('\n').find(line => line.startsWith('loc='));
+    return loc ? loc.slice(4).trim().toUpperCase() : '';
+  }
+
+  async function detectCountryLanguage(){
+    if(location.protocol === 'file:') return null;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(()=>controller.abort(), 1200);
+    try{
+      const response = await fetch('/cdn-cgi/trace', {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if(!response.ok) return null;
+      const country = parseTraceCountry(await response.text());
+      return country ? (country === 'JP' ? 'ja' : 'en') : null;
+    }catch(_err){
+      return null;
+    }finally{
+      window.clearTimeout(timeout);
+    }
+  }
+
+  async function getInitialLanguage(){
+    const stored = getStoredLanguage();
+    if(I18N[stored]) return stored;
+    return await detectCountryLanguage() || detectDefaultLanguage();
+  }
+
+  function applyLanguage(lang, persist = false){
+    const t = I18N[lang] || I18N.ja;
+    document.documentElement.lang = t.htmlLang;
+    document.querySelector('.lang-switch').setAttribute('aria-label', t.langLabel);
+    search.placeholder = t.searchPlaceholder;
+    document.querySelector('.toc > summary').textContent = t.toc;
+    noResult.textContent = t.noResult;
+    backTop.setAttribute('aria-label', t.backTop);
+
+    document.querySelectorAll('.filter-btn').forEach(btn=>{
+      btn.textContent = t.filters[btn.dataset.diff];
+    });
+    document.querySelectorAll('.tag').forEach(tag=>{
+      tag.textContent = t.filters[tag.classList.contains('easy') ? 'easy' : tag.classList.contains('medium') ? 'medium' : 'hard'];
+    });
+    document.querySelectorAll('.prob-head').forEach(head=>{
+      head.querySelectorAll('span').forEach((span, i)=>{ span.textContent = t.tableHeaders[i]; });
+    });
+    document.querySelectorAll('.topic').forEach((section, i)=>{
+      const topic = t.topics[i];
+      section.querySelector('h2').textContent = topic[0];
+      section.querySelector('.topic-desc').textContent = topic[1];
+    });
+    document.querySelectorAll('.toc-grid a').forEach((a, i)=>{
+      const num = a.querySelector('.toc-num').textContent;
+      a.replaceChildren();
+      const span = document.createElement('span');
+      span.className = 'toc-num';
+      span.textContent = num;
+      a.append(span, ` ${t.tocItems[i]}`);
+    });
+    document.querySelectorAll('.cell-desc').forEach((desc, i)=>{
+      desc.textContent = t.points[i];
+    });
+    document.querySelector('footer p').replaceChildren(
+      `${t.footer} `,
+      Object.assign(document.createElement('a'), {
+        href: 'https://x.com/popyson1648',
+        target: '_blank',
+        rel: 'noopener',
+        textContent: '@popyson1648',
+      })
+    );
+
+    langBtns.forEach(btn=>{
+      const isActive = btn.dataset.lang === lang;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+    if(persist) setStoredLanguage(lang);
+    buildIndex();
+    apply();
+  }
 
   // スペース区切りの全語AND。各語は類義語のいずれかが含まれれば一致
   function rowMatches(hay, q){
@@ -560,6 +794,9 @@
     activeDiff = b.getAttribute('data-diff');
     apply();
   }));
+  langBtns.forEach(btn=>btn.addEventListener('click', ()=>{
+    applyLanguage(btn.dataset.lang, true);
+  }));
 
   // back to top
   const backTop = document.getElementById('backTop');
@@ -567,6 +804,8 @@
     backTop.classList.toggle('show', window.scrollY > 600);
   });
   backTop.addEventListener('click', ()=>window.scrollTo({top:0, behavior:'smooth'}));
+
+  getInitialLanguage().then(lang=>applyLanguage(lang));
 </script>
 </body>
 </html>
