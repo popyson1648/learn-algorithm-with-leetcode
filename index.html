@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Learn algorithm with LeetCode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700&family=LINE+Seed+JP:wght@400;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:,">
 <style>
   /* ===== Design tokens ===== */
   :root{
@@ -11,7 +15,8 @@
     --bg:#ffffff; --surface:#f5f6f7; --border:#e3e6e9;
     --text:#1c1f23; --text-2:#454b53; --muted:#646b75; --accent:#1857c4;
     --link-underline:#bcccea; /* calm underline; full accent on hover/focus */
-    --easy:#1a7f37; --medium:#9a6700; --hard:#b42318;
+    --easy:#34A853; --medium:#FBBC04; --hard:#EA4335;
+    --easy-soft:#CEEAD6; --medium-soft:#FEEFC3; --hard-soft:#FAD2CF;
     /* type scale (single rhythm, no per-element shrinking) */
     --fs-meta:0.875rem; --fs-body:1rem; --fs-section:1.25rem; --fs-page:clamp(1.5rem,4vw,2rem);
     /* weight scale (consistent, tokenized) */
@@ -20,12 +25,14 @@
     /* spacing scale */
     --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px;
     --radius:6px;
+    /* problem list shared column template (header + rows align via subgrid) */
+    --prob-grid:max-content minmax(0,1.5fr) minmax(0,1.3fr) max-content;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{
     margin:0; background:var(--bg); color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;
+    font-family:"Alexandria","LINE Seed JP",sans-serif;
     font-size:var(--fs-body); font-weight:var(--fw-regular); line-height:var(--lh); -webkit-font-smoothing:antialiased;
   }
   a{
@@ -42,11 +49,6 @@
   header.hero{padding:var(--sp-8) 0 var(--sp-6)}
   .hero h1{font-size:var(--fs-page); font-weight:var(--fw-bold); letter-spacing:-0.01em; margin:0; line-height:1.3}
   .hero p{color:var(--muted); margin:var(--sp-3) 0 0}
-  .source-box{
-    margin-top:var(--sp-4); background:var(--surface); border-radius:var(--radius);
-    padding:var(--sp-4); color:var(--muted);
-  }
-  .source-box strong{color:var(--text)}
 
   /* ===== Toolbar ===== */
   .toolbar{
@@ -61,27 +63,41 @@
   }
   .filters{display:flex; gap:var(--sp-2); flex-wrap:wrap}
   .filter-btn{
-    background:var(--bg); border:1px solid var(--border); color:var(--text);
-    padding:var(--sp-2) var(--sp-4); min-height:44px; border-radius:var(--radius);
-    font-size:var(--fs-body); font-weight:var(--fw-medium); font-family:inherit; cursor:pointer;
-    display:inline-flex; align-items:center; gap:.45em; line-height:1;
+    border:1px solid transparent; padding:var(--sp-2) var(--sp-4); min-height:44px;
+    border-radius:var(--radius); font-size:var(--fs-body); font-weight:var(--fw-semibold);
+    font-family:inherit; cursor:pointer; line-height:1;
+    display:inline-flex; align-items:center; justify-content:center;
+    transition:filter .05s ease;
   }
-  .filter-btn::before{content:"●"; font-size:.85em; line-height:1; color:var(--muted)}
-  .filter-btn[data-diff="easy"]::before{color:var(--easy)}
-  .filter-btn[data-diff="medium"]::before{color:var(--medium)}
-  .filter-btn[data-diff="hard"]::before{color:var(--hard)}
-  .filter-btn:hover{background:var(--surface)}
-  .filter-btn.active{color:var(--bg); border-color:transparent; font-weight:var(--fw-semibold)}
-  .filter-btn.active::before{color:var(--bg)}
+  /* off state — tonal: soft tinted bg + strong colored label (keeps contrast) */
+  .filter-btn[data-diff="all"]{background:color-mix(in srgb,var(--text) 9%,#fff); color:var(--text)}
+  .filter-btn[data-diff="easy"]{background:var(--easy-soft); color:var(--easy)}
+  .filter-btn[data-diff="medium"]{background:var(--medium-soft); color:var(--medium)}
+  .filter-btn[data-diff="hard"]{background:var(--hard-soft); color:var(--hard)}
+  .filter-btn:hover{filter:brightness(0.96)}
+  /* on state — filled: full color bg + white label */
+  .filter-btn.active{color:#fff}
   .filter-btn[data-diff="all"].active{background:var(--text)}
   .filter-btn[data-diff="easy"].active{background:var(--easy)}
   .filter-btn[data-diff="medium"].active{background:var(--medium)}
   .filter-btn[data-diff="hard"].active{background:var(--hard)}
 
-  /* ===== Table of contents (text list, no boxes) ===== */
-  nav.toc{padding:var(--sp-8) 0 0}
-  nav.toc h2{font-size:var(--fs-meta); font-weight:var(--fw-semibold); letter-spacing:.06em; color:var(--muted); text-transform:uppercase; margin:0 0 var(--sp-3); padding-bottom:var(--sp-2); border-bottom:1px solid var(--border)}
-  .toc-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); column-gap:var(--sp-6); row-gap:0}
+  /* ===== Table of contents (collapsible, closed by default) ===== */
+  details.toc{padding:var(--sp-8) 0 0}
+  details.toc > summary{
+    display:flex; align-items:center; gap:var(--sp-2); cursor:pointer; list-style:none;
+    font-size:var(--fs-meta); font-weight:var(--fw-semibold); letter-spacing:.06em;
+    color:var(--muted); text-transform:uppercase;
+    padding-bottom:var(--sp-2); border-bottom:1px solid var(--border);
+  }
+  details.toc > summary::-webkit-details-marker{display:none}
+  details.toc > summary::before{
+    content:""; width:.5em; height:.5em; border-right:2px solid currentColor;
+    border-bottom:2px solid currentColor; transform:rotate(-45deg); transition:transform .15s ease;
+  }
+  details.toc[open] > summary::before{transform:rotate(45deg)}
+  details.toc > summary:hover{color:var(--accent)}
+  .toc-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); column-gap:var(--sp-6); row-gap:0; margin-top:var(--sp-3)}
   .toc-grid a{
     display:flex; gap:var(--sp-3); align-items:baseline;
     padding:var(--sp-3) var(--sp-2); border-radius:var(--radius);
@@ -93,35 +109,46 @@
   /* ===== Sections (spacing separates; book/CS refs are quiet subtitles) ===== */
   section.topic{padding-top:var(--sp-12)}
   .topic-head h2{font-size:var(--fs-section); font-weight:var(--fw-semibold); margin:0 0 var(--sp-1); line-height:1.3}
-  .topic-refs{margin:var(--sp-1) 0 0}
-  .ref-chip{
-    display:inline-block; background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--radius); padding:2px var(--sp-2); margin:0 var(--sp-2) var(--sp-1) 0;
-    font-size:var(--fs-meta); color:var(--text-2); line-height:1.6;
-  }
-  .ref-label{
-    color:var(--muted); font-weight:var(--fw-semibold); font-size:0.78em;
-    letter-spacing:.04em; margin-right:.4em;
-  }
   .topic-desc{color:var(--text-2); margin:var(--sp-3) 0 var(--sp-4)}
 
-  /* ===== Problem list (one card per item; difficulty aligned right) ===== */
-  ul.prob{list-style:none; margin:0; padding:0; border-top:1px solid var(--border)}
-  .prob-item{padding:var(--sp-3) var(--sp-2); border-bottom:1px solid var(--border)}
+  /* ===== Problem list (aligned columns w/ header; subgrid keeps cols in sync) ===== */
+  ul.prob{
+    list-style:none; margin:0; padding:0 var(--sp-2);
+    display:grid; grid-template-columns:var(--prob-grid); column-gap:var(--sp-4);
+    border-top:1px solid var(--border);
+  }
+  .prob-head{
+    grid-column:1/-1; display:grid; grid-template-columns:subgrid; align-items:end;
+    padding:var(--sp-2) 0; border-bottom:1px solid var(--border);
+    font-size:var(--fs-meta); font-weight:var(--fw-semibold); letter-spacing:.04em;
+    color:var(--muted); text-transform:uppercase;
+  }
+  .prob-head .h-diff{text-align:right}
+  .prob-item{
+    grid-column:1/-1; display:grid; grid-template-columns:subgrid; align-items:baseline;
+    padding:var(--sp-3) 0; border-bottom:1px solid var(--border);
+  }
   .prob-item:hover{background:var(--surface)}
-  .prob-row{display:flex; align-items:baseline; gap:var(--sp-3)}
-  .pnum{flex:none; width:4ch; color:var(--muted); font-variant-numeric:tabular-nums}
-  .cell-name{flex:1; min-width:0; font-weight:var(--fw-medium)}
-  .diff{flex:none; font-weight:var(--fw-semibold); white-space:nowrap}
-  .diff::before{content:"●"; margin-right:.45em; font-size:.85em; vertical-align:middle}
-  .diff.easy{color:var(--easy)}
-  .diff.medium{color:var(--medium)}
-  .diff.hard{color:var(--hard)}
-  .teach{color:var(--text-2); margin:var(--sp-1) 0 0}
+  .pnum{color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap}
+  .cell-name{min-width:0; font-weight:var(--fw-medium)}
+  .cell-desc{min-width:0; color:var(--text-2); font-size:var(--fs-meta)}
+  .cell-diff{justify-self:end}
+  /* difficulty tag — filled rounded rect, white label */
+  .tag{
+    display:inline-block; padding:2px 10px; border-radius:var(--radius);
+    color:#fff; font-size:var(--fs-meta); font-weight:var(--fw-semibold);
+    line-height:1.7; white-space:nowrap;
+  }
+  .tag.easy{background:var(--easy)}
+  .tag.medium{background:var(--medium)}
+  .tag.hard{background:var(--hard)}
 
   .no-result{display:none; color:var(--muted); padding:var(--sp-4) 0; font-style:italic}
 
-  footer{padding:var(--sp-12) 0; color:var(--muted); font-size:var(--fs-meta); margin-top:var(--sp-8); border-top:1px solid var(--border)}
+  footer{
+    padding:var(--sp-12) 0; color:var(--muted); font-size:var(--fs-meta);
+    margin-top:var(--sp-8); border-top:1px solid var(--border);
+  }
   footer a{color:var(--accent)}
 
   .back-top{
@@ -134,12 +161,24 @@
 
   @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
 
-  /* ===== Mobile: tighten card spacing ===== */
+  /* ===== Mobile: collapse aligned list into stacked cards ===== */
   @media (max-width:640px){
     .toolbar input[type="search"]{flex:1 1 100%}
     .filters{width:100%}
     .filter-btn{flex:1 1 0; justify-content:center; padding:var(--sp-2) var(--sp-1)}
-    .prob-item{padding:var(--sp-3) var(--sp-1)}
+
+    .prob-head{display:none}
+    ul.prob{display:block; padding:0; border-top:none}
+    .prob-item{
+      display:grid; grid-template-columns:auto 1fr max-content;
+      grid-template-areas:"num name diff" "num desc desc";
+      column-gap:var(--sp-3); row-gap:2px; align-items:start;
+      padding:var(--sp-3) var(--sp-1);
+    }
+    .pnum{grid-area:num}
+    .cell-name{grid-area:name}
+    .cell-diff{grid-area:diff; justify-self:end; align-self:start}
+    .cell-desc{grid-area:desc}
   }
 </style>
 </head>
@@ -148,13 +187,12 @@
 <header class="hero">
   <div class="wrap">
     <h1>Learn algorithm with LeetCode</h1>
-    <p class="source-box">各テーマには、教科書 <strong>The Algorithm Design Manual</strong>（S. Skiena）の対応章と、標準カリキュラム <strong>CS2023</strong>（ACM/IEEE）の対応分野・キーワードを併記しています。</p>
   </div>
 </header>
 
 <div class="toolbar">
   <div class="wrap toolbar-inner">
-    <input type="search" id="search" placeholder="keyword, problem name...">
+    <input type="search" id="search" placeholder="問題名・番号・キーワードで検索">
     <div class="filters" id="filters">
       <span class="filter-btn active" data-diff="all">All</span>
       <span class="filter-btn" data-diff="easy">Easy</span>
@@ -165,8 +203,8 @@
 </div>
 
 <div class="wrap">
-  <nav class="toc">
-    <h2>目次</h2>
+  <details class="toc">
+    <summary>目次</summary>
     <div class="toc-grid">
       <a href="#c1"><span class="toc-num">01</span> 計算量とアルゴリズム解析</a>
       <a href="#c2"><span class="toc-num">02</span> 配列・文字列</a>
@@ -183,7 +221,7 @@
       <a href="#c13"><span class="toc-num">13</span> 動的計画法</a>
       <a href="#c14"><span class="toc-num">14</span> 文字列マッチング</a>
     </div>
-  </nav>
+  </details>
 
   <p class="no-result" id="noResult">該当する問題が見つかりませんでした。</p>
 
@@ -191,15 +229,14 @@
   <section class="topic" id="c1">
     <div class="topic-head">
       <h2>01. 計算量とアルゴリズム解析</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第2章 Algorithm Analysis</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> Big-O・漸化式・再帰</span>
     </div>
     <p class="topic-desc">時間・空間計算量、逐次探索と二分探索の差、再帰の漸化式といった基礎。実装そのものは易しいが、計算量を意識して解くことが目的です。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">704</span><span class="cell-name"><a href="https://leetcode.com/problems/binary-search/" target="_blank" rel="noopener">Binary Search</a></span><span class="diff easy">Easy</span></div><p class="teach">O(log n) の基本形</p></li>
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">69</span><span class="cell-name"><a href="https://leetcode.com/problems/sqrtx/" target="_blank" rel="noopener">Sqrt(x)</a></span><span class="diff easy">Easy</span></div><p class="teach">二分探索による対数時間化</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">50</span><span class="cell-name"><a href="https://leetcode.com/problems/powx-n/" target="_blank" rel="noopener">Pow(x, n)</a></span><span class="diff medium">Medium</span></div><p class="teach">分割統治・繰り返し二乗法</p></li>
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">509</span><span class="cell-name"><a href="https://leetcode.com/problems/fibonacci-number/" target="_blank" rel="noopener">Fibonacci Number</a></span><span class="diff easy">Easy</span></div><p class="teach">再帰の漸化式と指数 vs 線形時間</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">704</span><span class="cell-name"><a href="https://leetcode.com/problems/binary-search/" target="_blank" rel="noopener">Binary Search</a></span><span class="cell-desc">O(log n) の基本形</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">69</span><span class="cell-name"><a href="https://leetcode.com/problems/sqrtx/" target="_blank" rel="noopener">Sqrt(x)</a></span><span class="cell-desc">二分探索による対数時間化</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">50</span><span class="cell-name"><a href="https://leetcode.com/problems/powx-n/" target="_blank" rel="noopener">Pow(x, n)</a></span><span class="cell-desc">分割統治・繰り返し二乗法</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">509</span><span class="cell-name"><a href="https://leetcode.com/problems/fibonacci-number/" target="_blank" rel="noopener">Fibonacci Number</a></span><span class="cell-desc">再帰の漸化式と指数 vs 線形時間</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
     </ul>
   </section>
 
@@ -207,17 +244,16 @@
   <section class="topic" id="c2">
     <div class="topic-head">
       <h2>02. 配列・文字列</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第3章 Data Structures</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> Arrays / Strings</span>
     </div>
     <p class="topic-desc">連続メモリ上のランダムアクセス、二ポインタ・スライディングウィンドウなど配列／文字列操作の基本パターン。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">1</span><span class="cell-name"><a href="https://leetcode.com/problems/two-sum/" target="_blank" rel="noopener">Two Sum</a></span><span class="diff easy">Easy</span></div><p class="teach">配列走査とハッシュの導入</p></li>
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">121</span><span class="cell-name"><a href="https://leetcode.com/problems/best-time-to-buy-and-sell-stock/" target="_blank" rel="noopener">Best Time to Buy and Sell Stock</a></span><span class="diff easy">Easy</span></div><p class="teach">一回走査での最小値追跡</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">238</span><span class="cell-name"><a href="https://leetcode.com/problems/product-of-array-except-self/" target="_blank" rel="noopener">Product of Array Except Self</a></span><span class="diff medium">Medium</span></div><p class="teach">接頭辞・接尾辞積</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">15</span><span class="cell-name"><a href="https://leetcode.com/problems/3sum/" target="_blank" rel="noopener">3Sum</a></span><span class="diff medium">Medium</span></div><p class="teach">ソート＋二ポインタ</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">3</span><span class="cell-name"><a href="https://leetcode.com/problems/longest-substring-without-repeating-characters/" target="_blank" rel="noopener">Longest Substring Without Repeating Characters</a></span><span class="diff medium">Medium</span></div><p class="teach">スライディングウィンドウ</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">56</span><span class="cell-name"><a href="https://leetcode.com/problems/merge-intervals/" target="_blank" rel="noopener">Merge Intervals</a></span><span class="diff medium">Medium</span></div><p class="teach">区間ソートとマージ</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">1</span><span class="cell-name"><a href="https://leetcode.com/problems/two-sum/" target="_blank" rel="noopener">Two Sum</a></span><span class="cell-desc">配列走査とハッシュの導入</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">121</span><span class="cell-name"><a href="https://leetcode.com/problems/best-time-to-buy-and-sell-stock/" target="_blank" rel="noopener">Best Time to Buy and Sell Stock</a></span><span class="cell-desc">一回走査での最小値追跡</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">238</span><span class="cell-name"><a href="https://leetcode.com/problems/product-of-array-except-self/" target="_blank" rel="noopener">Product of Array Except Self</a></span><span class="cell-desc">接頭辞・接尾辞積</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">15</span><span class="cell-name"><a href="https://leetcode.com/problems/3sum/" target="_blank" rel="noopener">3Sum</a></span><span class="cell-desc">ソート＋二ポインタ</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">3</span><span class="cell-name"><a href="https://leetcode.com/problems/longest-substring-without-repeating-characters/" target="_blank" rel="noopener">Longest Substring Without Repeating Characters</a></span><span class="cell-desc">スライディングウィンドウ</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">56</span><span class="cell-name"><a href="https://leetcode.com/problems/merge-intervals/" target="_blank" rel="noopener">Merge Intervals</a></span><span class="cell-desc">区間ソートとマージ</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
     </ul>
   </section>
 
@@ -225,17 +261,16 @@
   <section class="topic" id="c3">
     <div class="topic-head">
       <h2>03. 連結リスト</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第3章 Data Structures</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> Linked Lists（配列との比較・挿入削除）</span>
     </div>
     <p class="topic-desc">ポインタ操作、ダミーノード、二ポインタ（速い／遅い）による循環検出。配列との計算量トレードオフを体感します。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">206</span><span class="cell-name"><a href="https://leetcode.com/problems/reverse-linked-list/" target="_blank" rel="noopener">Reverse Linked List</a></span><span class="diff easy">Easy</span></div><p class="teach">ポインタ反転の基本</p></li>
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">21</span><span class="cell-name"><a href="https://leetcode.com/problems/merge-two-sorted-lists/" target="_blank" rel="noopener">Merge Two Sorted Lists</a></span><span class="diff easy">Easy</span></div><p class="teach">ダミーノードでのマージ</p></li>
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">141</span><span class="cell-name"><a href="https://leetcode.com/problems/linked-list-cycle/" target="_blank" rel="noopener">Linked List Cycle</a></span><span class="diff easy">Easy</span></div><p class="teach">Floyd の循環検出（速い・遅いポインタ）</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">19</span><span class="cell-name"><a href="https://leetcode.com/problems/remove-nth-node-from-end-of-list/" target="_blank" rel="noopener">Remove Nth Node From End of List</a></span><span class="diff medium">Medium</span></div><p class="teach">先行ポインタ</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">2</span><span class="cell-name"><a href="https://leetcode.com/problems/add-two-numbers/" target="_blank" rel="noopener">Add Two Numbers</a></span><span class="diff medium">Medium</span></div><p class="teach">連結リスト上の桁上がり</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">143</span><span class="cell-name"><a href="https://leetcode.com/problems/reorder-list/" target="_blank" rel="noopener">Reorder List</a></span><span class="diff medium">Medium</span></div><p class="teach">中点検出＋反転＋マージの複合</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">206</span><span class="cell-name"><a href="https://leetcode.com/problems/reverse-linked-list/" target="_blank" rel="noopener">Reverse Linked List</a></span><span class="cell-desc">ポインタ反転の基本</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">21</span><span class="cell-name"><a href="https://leetcode.com/problems/merge-two-sorted-lists/" target="_blank" rel="noopener">Merge Two Sorted Lists</a></span><span class="cell-desc">ダミーノードでのマージ</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">141</span><span class="cell-name"><a href="https://leetcode.com/problems/linked-list-cycle/" target="_blank" rel="noopener">Linked List Cycle</a></span><span class="cell-desc">Floyd の循環検出（速い・遅いポインタ）</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">19</span><span class="cell-name"><a href="https://leetcode.com/problems/remove-nth-node-from-end-of-list/" target="_blank" rel="noopener">Remove Nth Node From End of List</a></span><span class="cell-desc">先行ポインタ</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">2</span><span class="cell-name"><a href="https://leetcode.com/problems/add-two-numbers/" target="_blank" rel="noopener">Add Two Numbers</a></span><span class="cell-desc">連結リスト上の桁上がり</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">143</span><span class="cell-name"><a href="https://leetcode.com/problems/reorder-list/" target="_blank" rel="noopener">Reorder List</a></span><span class="cell-desc">中点検出＋反転＋マージの複合</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
     </ul>
   </section>
 
@@ -243,16 +278,15 @@
   <section class="topic" id="c4">
     <div class="topic-head">
       <h2>04. スタック・キュー</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第3章 Data Structures</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> Stacks / Queues</span>
     </div>
     <p class="topic-desc">LIFO／FIFO のコンテナ抽象、相互実装、単調スタックといった応用。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">20</span><span class="cell-name"><a href="https://leetcode.com/problems/valid-parentheses/" target="_blank" rel="noopener">Valid Parentheses</a></span><span class="diff easy">Easy</span></div><p class="teach">スタックによる対応検査</p></li>
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">232</span><span class="cell-name"><a href="https://leetcode.com/problems/implement-queue-using-stacks/" target="_blank" rel="noopener">Implement Queue using Stacks</a></span><span class="diff easy">Easy</span></div><p class="teach">スタックでキューを構成</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">155</span><span class="cell-name"><a href="https://leetcode.com/problems/min-stack/" target="_blank" rel="noopener">Min Stack</a></span><span class="diff medium">Medium</span></div><p class="teach">補助スタックで O(1) 最小値</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">739</span><span class="cell-name"><a href="https://leetcode.com/problems/daily-temperatures/" target="_blank" rel="noopener">Daily Temperatures</a></span><span class="diff medium">Medium</span></div><p class="teach">単調スタック</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">150</span><span class="cell-name"><a href="https://leetcode.com/problems/evaluate-reverse-polish-notation/" target="_blank" rel="noopener">Evaluate Reverse Polish Notation</a></span><span class="diff medium">Medium</span></div><p class="teach">逆ポーランド記法の評価</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">20</span><span class="cell-name"><a href="https://leetcode.com/problems/valid-parentheses/" target="_blank" rel="noopener">Valid Parentheses</a></span><span class="cell-desc">スタックによる対応検査</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">232</span><span class="cell-name"><a href="https://leetcode.com/problems/implement-queue-using-stacks/" target="_blank" rel="noopener">Implement Queue using Stacks</a></span><span class="cell-desc">スタックでキューを構成</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">155</span><span class="cell-name"><a href="https://leetcode.com/problems/min-stack/" target="_blank" rel="noopener">Min Stack</a></span><span class="cell-desc">補助スタックで O(1) 最小値</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">739</span><span class="cell-name"><a href="https://leetcode.com/problems/daily-temperatures/" target="_blank" rel="noopener">Daily Temperatures</a></span><span class="cell-desc">単調スタック</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">150</span><span class="cell-name"><a href="https://leetcode.com/problems/evaluate-reverse-polish-notation/" target="_blank" rel="noopener">Evaluate Reverse Polish Notation</a></span><span class="cell-desc">逆ポーランド記法の評価</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
     </ul>
   </section>
 
@@ -260,17 +294,16 @@
   <section class="topic" id="c5">
     <div class="topic-head">
       <h2>05. ハッシュテーブル・マップ</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第3章 Data Structures</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> Hash Tables / Maps</span>
     </div>
     <p class="topic-desc">平均 O(1) の挿入・検索、ハッシュによる集計・グルーピング。連結リストと組み合わせたキャッシュ設計も。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">217</span><span class="cell-name"><a href="https://leetcode.com/problems/contains-duplicate/" target="_blank" rel="noopener">Contains Duplicate</a></span><span class="diff easy">Easy</span></div><p class="teach">集合による重複検出</p></li>
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">242</span><span class="cell-name"><a href="https://leetcode.com/problems/valid-anagram/" target="_blank" rel="noopener">Valid Anagram</a></span><span class="diff easy">Easy</span></div><p class="teach">頻度マップ</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">49</span><span class="cell-name"><a href="https://leetcode.com/problems/group-anagrams/" target="_blank" rel="noopener">Group Anagrams</a></span><span class="diff medium">Medium</span></div><p class="teach">キー設計によるグルーピング</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">560</span><span class="cell-name"><a href="https://leetcode.com/problems/subarray-sum-equals-k/" target="_blank" rel="noopener">Subarray Sum Equals K</a></span><span class="diff medium">Medium</span></div><p class="teach">接頭辞和＋ハッシュ</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">128</span><span class="cell-name"><a href="https://leetcode.com/problems/longest-consecutive-sequence/" target="_blank" rel="noopener">Longest Consecutive Sequence</a></span><span class="diff medium">Medium</span></div><p class="teach">集合による O(n) 連続列</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">146</span><span class="cell-name"><a href="https://leetcode.com/problems/lru-cache/" target="_blank" rel="noopener">LRU Cache</a></span><span class="diff medium">Medium</span></div><p class="teach">ハッシュ＋双方向連結リスト</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">217</span><span class="cell-name"><a href="https://leetcode.com/problems/contains-duplicate/" target="_blank" rel="noopener">Contains Duplicate</a></span><span class="cell-desc">集合による重複検出</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">242</span><span class="cell-name"><a href="https://leetcode.com/problems/valid-anagram/" target="_blank" rel="noopener">Valid Anagram</a></span><span class="cell-desc">頻度マップ</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">49</span><span class="cell-name"><a href="https://leetcode.com/problems/group-anagrams/" target="_blank" rel="noopener">Group Anagrams</a></span><span class="cell-desc">キー設計によるグルーピング</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">560</span><span class="cell-name"><a href="https://leetcode.com/problems/subarray-sum-equals-k/" target="_blank" rel="noopener">Subarray Sum Equals K</a></span><span class="cell-desc">接頭辞和＋ハッシュ</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">128</span><span class="cell-name"><a href="https://leetcode.com/problems/longest-consecutive-sequence/" target="_blank" rel="noopener">Longest Consecutive Sequence</a></span><span class="cell-desc">集合による O(n) 連続列</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">146</span><span class="cell-name"><a href="https://leetcode.com/problems/lru-cache/" target="_blank" rel="noopener">LRU Cache</a></span><span class="cell-desc">ハッシュ＋双方向連結リスト</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
     </ul>
   </section>
 
@@ -278,16 +311,15 @@
   <section class="topic" id="c6">
     <div class="topic-head">
       <h2>06. ヒープ・優先度付きキュー</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第3・4章</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> Heaps</span>
     </div>
     <p class="topic-desc">二分ヒープによる最小／最大要素の O(log n) 取り出し。Top-K、ストリーム中央値、k 本のリストのマージなど。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">1046</span><span class="cell-name"><a href="https://leetcode.com/problems/last-stone-weight/" target="_blank" rel="noopener">Last Stone Weight</a></span><span class="diff easy">Easy</span></div><p class="teach">最大ヒープの基本操作</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">215</span><span class="cell-name"><a href="https://leetcode.com/problems/kth-largest-element-in-an-array/" target="_blank" rel="noopener">Kth Largest Element in an Array</a></span><span class="diff medium">Medium</span></div><p class="teach">ヒープ／クイックセレクト</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">347</span><span class="cell-name"><a href="https://leetcode.com/problems/top-k-frequent-elements/" target="_blank" rel="noopener">Top K Frequent Elements</a></span><span class="diff medium">Medium</span></div><p class="teach">頻度＋ヒープ／バケットソート</p></li>
-        <li class="prob-item" data-diff="hard"><div class="prob-row"><span class="pnum">23</span><span class="cell-name"><a href="https://leetcode.com/problems/merge-k-sorted-lists/" target="_blank" rel="noopener">Merge k Sorted Lists</a></span><span class="diff hard">Hard</span></div><p class="teach">ヒープによる k 方向マージ</p></li>
-        <li class="prob-item" data-diff="hard"><div class="prob-row"><span class="pnum">295</span><span class="cell-name"><a href="https://leetcode.com/problems/find-median-from-data-stream/" target="_blank" rel="noopener">Find Median from Data Stream</a></span><span class="diff hard">Hard</span></div><p class="teach">二つのヒープで中央値維持</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">1046</span><span class="cell-name"><a href="https://leetcode.com/problems/last-stone-weight/" target="_blank" rel="noopener">Last Stone Weight</a></span><span class="cell-desc">最大ヒープの基本操作</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">215</span><span class="cell-name"><a href="https://leetcode.com/problems/kth-largest-element-in-an-array/" target="_blank" rel="noopener">Kth Largest Element in an Array</a></span><span class="cell-desc">ヒープ／クイックセレクト</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">347</span><span class="cell-name"><a href="https://leetcode.com/problems/top-k-frequent-elements/" target="_blank" rel="noopener">Top K Frequent Elements</a></span><span class="cell-desc">頻度＋ヒープ／バケットソート</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="hard"><span class="pnum">23</span><span class="cell-name"><a href="https://leetcode.com/problems/merge-k-sorted-lists/" target="_blank" rel="noopener">Merge k Sorted Lists</a></span><span class="cell-desc">ヒープによる k 方向マージ</span><span class="cell-diff"><span class="tag hard">Hard</span></span></li>
+        <li class="prob-item" data-diff="hard"><span class="pnum">295</span><span class="cell-name"><a href="https://leetcode.com/problems/find-median-from-data-stream/" target="_blank" rel="noopener">Find Median from Data Stream</a></span><span class="cell-desc">二つのヒープで中央値維持</span><span class="cell-diff"><span class="tag hard">Hard</span></span></li>
     </ul>
   </section>
 
@@ -295,15 +327,14 @@
   <section class="topic" id="c7">
     <div class="topic-head">
       <h2>07. 探索（線形・二分探索）</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第4章 Sorting and Searching</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> 逐次探索・二分探索</span>
     </div>
     <p class="topic-desc">ソート済みデータでの二分探索、回転配列や境界条件、さらに「答えで二分探索する」発想。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">74</span><span class="cell-name"><a href="https://leetcode.com/problems/search-a-2d-matrix/" target="_blank" rel="noopener">Search a 2D Matrix</a></span><span class="diff medium">Medium</span></div><p class="teach">二次元を一次元とみなす二分探索</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">33</span><span class="cell-name"><a href="https://leetcode.com/problems/search-in-rotated-sorted-array/" target="_blank" rel="noopener">Search in Rotated Sorted Array</a></span><span class="diff medium">Medium</span></div><p class="teach">回転配列の二分探索</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">34</span><span class="cell-name"><a href="https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/" target="_blank" rel="noopener">Find First and Last Position</a></span><span class="diff medium">Medium</span></div><p class="teach">下界・上界の二分探索</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">875</span><span class="cell-name"><a href="https://leetcode.com/problems/koko-eating-bananas/" target="_blank" rel="noopener">Koko Eating Bananas</a></span><span class="diff medium">Medium</span></div><p class="teach">答えの空間で二分探索</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">74</span><span class="cell-name"><a href="https://leetcode.com/problems/search-a-2d-matrix/" target="_blank" rel="noopener">Search a 2D Matrix</a></span><span class="cell-desc">二次元を一次元とみなす二分探索</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">33</span><span class="cell-name"><a href="https://leetcode.com/problems/search-in-rotated-sorted-array/" target="_blank" rel="noopener">Search in Rotated Sorted Array</a></span><span class="cell-desc">回転配列の二分探索</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">34</span><span class="cell-name"><a href="https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/" target="_blank" rel="noopener">Find First and Last Position</a></span><span class="cell-desc">下界・上界の二分探索</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">875</span><span class="cell-name"><a href="https://leetcode.com/problems/koko-eating-bananas/" target="_blank" rel="noopener">Koko Eating Bananas</a></span><span class="cell-desc">答えの空間で二分探索</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
     </ul>
   </section>
 
@@ -311,15 +342,14 @@
   <section class="topic" id="c8">
     <div class="topic-head">
       <h2>08. ソート</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第4章 Sorting and Searching</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> 二次ソート・n log n ソート・字句順</span>
     </div>
     <p class="topic-desc">マージソート／クイックソートなどの n log n ソート、安定性、ソートを前処理として活用するパターン。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">912</span><span class="cell-name"><a href="https://leetcode.com/problems/sort-an-array/" target="_blank" rel="noopener">Sort an Array</a></span><span class="diff medium">Medium</span></div><p class="teach">マージ／クイックソートの自前実装</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">75</span><span class="cell-name"><a href="https://leetcode.com/problems/sort-colors/" target="_blank" rel="noopener">Sort Colors</a></span><span class="diff medium">Medium</span></div><p class="teach">三方向分割（Dutch national flag）</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">179</span><span class="cell-name"><a href="https://leetcode.com/problems/largest-number/" target="_blank" rel="noopener">Largest Number</a></span><span class="diff medium">Medium</span></div><p class="teach">カスタム比較・字句順ソート</p></li>
-        <li class="prob-item" data-diff="hard"><div class="prob-row"><span class="pnum">315</span><span class="cell-name"><a href="https://leetcode.com/problems/count-of-smaller-numbers-after-self/" target="_blank" rel="noopener">Count of Smaller Numbers After Self</a></span><span class="diff hard">Hard</span></div><p class="teach">マージソートと反転数</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">912</span><span class="cell-name"><a href="https://leetcode.com/problems/sort-an-array/" target="_blank" rel="noopener">Sort an Array</a></span><span class="cell-desc">マージ／クイックソートの自前実装</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">75</span><span class="cell-name"><a href="https://leetcode.com/problems/sort-colors/" target="_blank" rel="noopener">Sort Colors</a></span><span class="cell-desc">三方向分割（Dutch national flag）</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">179</span><span class="cell-name"><a href="https://leetcode.com/problems/largest-number/" target="_blank" rel="noopener">Largest Number</a></span><span class="cell-desc">カスタム比較・字句順ソート</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="hard"><span class="pnum">315</span><span class="cell-name"><a href="https://leetcode.com/problems/count-of-smaller-numbers-after-self/" target="_blank" rel="noopener">Count of Smaller Numbers After Self</a></span><span class="cell-desc">マージソートと反転数</span><span class="cell-diff"><span class="tag hard">Hard</span></span></li>
     </ul>
   </section>
 
@@ -327,19 +357,18 @@
   <section class="topic" id="c9">
     <div class="topic-head">
       <h2>09. 木・二分探索木・平衡木</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第3章 Data Structures</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> Trees / 走査 / 木の平衡化</span>
     </div>
     <p class="topic-desc">木の走査（前順・中順・後順・レベル順）、BST 性質、平衡判定。再帰と BFS/DFS の基礎固め。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">104</span><span class="cell-name"><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/" target="_blank" rel="noopener">Maximum Depth of Binary Tree</a></span><span class="diff easy">Easy</span></div><p class="teach">再帰の基礎</p></li>
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">226</span><span class="cell-name"><a href="https://leetcode.com/problems/invert-binary-tree/" target="_blank" rel="noopener">Invert Binary Tree</a></span><span class="diff easy">Easy</span></div><p class="teach">木の再帰的変換</p></li>
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">110</span><span class="cell-name"><a href="https://leetcode.com/problems/balanced-binary-tree/" target="_blank" rel="noopener">Balanced Binary Tree</a></span><span class="diff easy">Easy</span></div><p class="teach">高さと平衡の判定</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">102</span><span class="cell-name"><a href="https://leetcode.com/problems/binary-tree-level-order-traversal/" target="_blank" rel="noopener">Binary Tree Level Order Traversal</a></span><span class="diff medium">Medium</span></div><p class="teach">レベル順走査（BFS）</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">98</span><span class="cell-name"><a href="https://leetcode.com/problems/validate-binary-search-tree/" target="_blank" rel="noopener">Validate Binary Search Tree</a></span><span class="diff medium">Medium</span></div><p class="teach">BST 不変条件の検証</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">230</span><span class="cell-name"><a href="https://leetcode.com/problems/kth-smallest-element-in-a-bst/" target="_blank" rel="noopener">Kth Smallest Element in a BST</a></span><span class="diff medium">Medium</span></div><p class="teach">中順走査で整列順アクセス</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">235</span><span class="cell-name"><a href="https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/" target="_blank" rel="noopener">Lowest Common Ancestor of a BST</a></span><span class="diff medium">Medium</span></div><p class="teach">BST 性質を使った探索</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">208</span><span class="cell-name"><a href="https://leetcode.com/problems/implement-trie-prefix-tree/" target="_blank" rel="noopener">Implement Trie (Prefix Tree)</a></span><span class="diff medium">Medium</span></div><p class="teach">トライ木（文字列用の木）</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">104</span><span class="cell-name"><a href="https://leetcode.com/problems/maximum-depth-of-binary-tree/" target="_blank" rel="noopener">Maximum Depth of Binary Tree</a></span><span class="cell-desc">再帰の基礎</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">226</span><span class="cell-name"><a href="https://leetcode.com/problems/invert-binary-tree/" target="_blank" rel="noopener">Invert Binary Tree</a></span><span class="cell-desc">木の再帰的変換</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">110</span><span class="cell-name"><a href="https://leetcode.com/problems/balanced-binary-tree/" target="_blank" rel="noopener">Balanced Binary Tree</a></span><span class="cell-desc">高さと平衡の判定</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">102</span><span class="cell-name"><a href="https://leetcode.com/problems/binary-tree-level-order-traversal/" target="_blank" rel="noopener">Binary Tree Level Order Traversal</a></span><span class="cell-desc">レベル順走査（BFS）</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">98</span><span class="cell-name"><a href="https://leetcode.com/problems/validate-binary-search-tree/" target="_blank" rel="noopener">Validate Binary Search Tree</a></span><span class="cell-desc">BST 不変条件の検証</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">230</span><span class="cell-name"><a href="https://leetcode.com/problems/kth-smallest-element-in-a-bst/" target="_blank" rel="noopener">Kth Smallest Element in a BST</a></span><span class="cell-desc">中順走査で整列順アクセス</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">235</span><span class="cell-name"><a href="https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/" target="_blank" rel="noopener">Lowest Common Ancestor of a BST</a></span><span class="cell-desc">BST 性質を使った探索</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">208</span><span class="cell-name"><a href="https://leetcode.com/problems/implement-trie-prefix-tree/" target="_blank" rel="noopener">Implement Trie (Prefix Tree)</a></span><span class="cell-desc">トライ木（文字列用の木）</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
     </ul>
   </section>
 
@@ -347,18 +376,17 @@
   <section class="topic" id="c10">
     <div class="topic-head">
       <h2>10. グラフ探索（BFS / DFS・トポロジカルソート）</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第5章 Graph Traversal</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> 深さ優先・幅優先・トポロジカルソート</span>
     </div>
     <p class="topic-desc">隣接リスト表現、連結成分、グリッド上の探索、閉路検出と依存関係のトポロジカル順序付け。Union-Find も含む。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">200</span><span class="cell-name"><a href="https://leetcode.com/problems/number-of-islands/" target="_blank" rel="noopener">Number of Islands</a></span><span class="diff medium">Medium</span></div><p class="teach">グリッド上の DFS/BFS と連結成分</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">133</span><span class="cell-name"><a href="https://leetcode.com/problems/clone-graph/" target="_blank" rel="noopener">Clone Graph</a></span><span class="diff medium">Medium</span></div><p class="teach">隣接リストの走査と複製</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">994</span><span class="cell-name"><a href="https://leetcode.com/problems/rotting-oranges/" target="_blank" rel="noopener">Rotting Oranges</a></span><span class="diff medium">Medium</span></div><p class="teach">多始点 BFS</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">207</span><span class="cell-name"><a href="https://leetcode.com/problems/course-schedule/" target="_blank" rel="noopener">Course Schedule</a></span><span class="diff medium">Medium</span></div><p class="teach">閉路検出（トポロジカルソート）</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">210</span><span class="cell-name"><a href="https://leetcode.com/problems/course-schedule-ii/" target="_blank" rel="noopener">Course Schedule II</a></span><span class="diff medium">Medium</span></div><p class="teach">トポロジカル順序の出力（Kahn 法）</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">684</span><span class="cell-name"><a href="https://leetcode.com/problems/redundant-connection/" target="_blank" rel="noopener">Redundant Connection</a></span><span class="diff medium">Medium</span></div><p class="teach">Union-Find（素集合データ構造）</p></li>
-        <li class="prob-item" data-diff="hard"><div class="prob-row"><span class="pnum">127</span><span class="cell-name"><a href="https://leetcode.com/problems/word-ladder/" target="_blank" rel="noopener">Word Ladder</a></span><span class="diff hard">Hard</span></div><p class="teach">暗黙グラフ上の最短 BFS</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">200</span><span class="cell-name"><a href="https://leetcode.com/problems/number-of-islands/" target="_blank" rel="noopener">Number of Islands</a></span><span class="cell-desc">グリッド上の DFS/BFS と連結成分</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">133</span><span class="cell-name"><a href="https://leetcode.com/problems/clone-graph/" target="_blank" rel="noopener">Clone Graph</a></span><span class="cell-desc">隣接リストの走査と複製</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">994</span><span class="cell-name"><a href="https://leetcode.com/problems/rotting-oranges/" target="_blank" rel="noopener">Rotting Oranges</a></span><span class="cell-desc">多始点 BFS</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">207</span><span class="cell-name"><a href="https://leetcode.com/problems/course-schedule/" target="_blank" rel="noopener">Course Schedule</a></span><span class="cell-desc">閉路検出（トポロジカルソート）</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">210</span><span class="cell-name"><a href="https://leetcode.com/problems/course-schedule-ii/" target="_blank" rel="noopener">Course Schedule II</a></span><span class="cell-desc">トポロジカル順序の出力（Kahn 法）</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">684</span><span class="cell-name"><a href="https://leetcode.com/problems/redundant-connection/" target="_blank" rel="noopener">Redundant Connection</a></span><span class="cell-desc">Union-Find（素集合データ構造）</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="hard"><span class="pnum">127</span><span class="cell-name"><a href="https://leetcode.com/problems/word-ladder/" target="_blank" rel="noopener">Word Ladder</a></span><span class="cell-desc">暗黙グラフ上の最短 BFS</span><span class="cell-diff"><span class="tag hard">Hard</span></span></li>
     </ul>
   </section>
 
@@ -366,16 +394,15 @@
   <section class="topic" id="c11">
     <div class="topic-head">
       <h2>11. 重み付きグラフ（最短経路・最小全域木）</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第6章 Weighted Graph Algorithms</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> 最短経路・最小全域木</span>
     </div>
     <p class="topic-desc">Dijkstra / Bellman-Ford 系の最短経路、Prim / Kruskal の最小全域木。優先度付きキューや Union-Find が土台になります。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">743</span><span class="cell-name"><a href="https://leetcode.com/problems/network-delay-time/" target="_blank" rel="noopener">Network Delay Time</a></span><span class="diff medium">Medium</span></div><p class="teach">Dijkstra 法</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">787</span><span class="cell-name"><a href="https://leetcode.com/problems/cheapest-flights-within-k-stops/" target="_blank" rel="noopener">Cheapest Flights Within K Stops</a></span><span class="diff medium">Medium</span></div><p class="teach">Bellman-Ford（経由数制約）</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">1584</span><span class="cell-name"><a href="https://leetcode.com/problems/min-cost-to-connect-all-points/" target="_blank" rel="noopener">Min Cost to Connect All Points</a></span><span class="diff medium">Medium</span></div><p class="teach">最小全域木（Prim / Kruskal）</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">1631</span><span class="cell-name"><a href="https://leetcode.com/problems/path-with-minimum-effort/" target="_blank" rel="noopener">Path With Minimum Effort</a></span><span class="diff medium">Medium</span></div><p class="teach">Dijkstra の変形（ボトルネック最短）</p></li>
-        <li class="prob-item" data-diff="hard"><div class="prob-row"><span class="pnum">778</span><span class="cell-name"><a href="https://leetcode.com/problems/swim-in-rising-water/" target="_blank" rel="noopener">Swim in Rising Water</a></span><span class="diff hard">Hard</span></div><p class="teach">優先度付きキュー＋二分探索的発想</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">743</span><span class="cell-name"><a href="https://leetcode.com/problems/network-delay-time/" target="_blank" rel="noopener">Network Delay Time</a></span><span class="cell-desc">Dijkstra 法</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">787</span><span class="cell-name"><a href="https://leetcode.com/problems/cheapest-flights-within-k-stops/" target="_blank" rel="noopener">Cheapest Flights Within K Stops</a></span><span class="cell-desc">Bellman-Ford（経由数制約）</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">1584</span><span class="cell-name"><a href="https://leetcode.com/problems/min-cost-to-connect-all-points/" target="_blank" rel="noopener">Min Cost to Connect All Points</a></span><span class="cell-desc">最小全域木（Prim / Kruskal）</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">1631</span><span class="cell-name"><a href="https://leetcode.com/problems/path-with-minimum-effort/" target="_blank" rel="noopener">Path With Minimum Effort</a></span><span class="cell-desc">Dijkstra の変形（ボトルネック最短）</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="hard"><span class="pnum">778</span><span class="cell-name"><a href="https://leetcode.com/problems/swim-in-rising-water/" target="_blank" rel="noopener">Swim in Rising Water</a></span><span class="cell-desc">優先度付きキュー＋二分探索的発想</span><span class="cell-diff"><span class="tag hard">Hard</span></span></li>
     </ul>
   </section>
 
@@ -383,17 +410,16 @@
   <section class="topic" id="c12">
     <div class="topic-head">
       <h2>12. 組合せ探索・バックトラッキング</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第7章 Combinatorial Search</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> 探索戦略（best-first 含む）</span>
     </div>
     <p class="topic-desc">部分集合・順列・組合せの全列挙、枝刈り、盤面探索。再帰による状態空間の探索を体系的に学びます。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">78</span><span class="cell-name"><a href="https://leetcode.com/problems/subsets/" target="_blank" rel="noopener">Subsets</a></span><span class="diff medium">Medium</span></div><p class="teach">部分集合の列挙</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">46</span><span class="cell-name"><a href="https://leetcode.com/problems/permutations/" target="_blank" rel="noopener">Permutations</a></span><span class="diff medium">Medium</span></div><p class="teach">順列の列挙</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">39</span><span class="cell-name"><a href="https://leetcode.com/problems/combination-sum/" target="_blank" rel="noopener">Combination Sum</a></span><span class="diff medium">Medium</span></div><p class="teach">重複ありの組合せ探索</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">22</span><span class="cell-name"><a href="https://leetcode.com/problems/generate-parentheses/" target="_blank" rel="noopener">Generate Parentheses</a></span><span class="diff medium">Medium</span></div><p class="teach">制約付き生成と枝刈り</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">79</span><span class="cell-name"><a href="https://leetcode.com/problems/word-search/" target="_blank" rel="noopener">Word Search</a></span><span class="diff medium">Medium</span></div><p class="teach">グリッド上の DFS バックトラッキング</p></li>
-        <li class="prob-item" data-diff="hard"><div class="prob-row"><span class="pnum">51</span><span class="cell-name"><a href="https://leetcode.com/problems/n-queens/" target="_blank" rel="noopener">N-Queens</a></span><span class="diff hard">Hard</span></div><p class="teach">制約充足と枝刈りの王道</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">78</span><span class="cell-name"><a href="https://leetcode.com/problems/subsets/" target="_blank" rel="noopener">Subsets</a></span><span class="cell-desc">部分集合の列挙</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">46</span><span class="cell-name"><a href="https://leetcode.com/problems/permutations/" target="_blank" rel="noopener">Permutations</a></span><span class="cell-desc">順列の列挙</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">39</span><span class="cell-name"><a href="https://leetcode.com/problems/combination-sum/" target="_blank" rel="noopener">Combination Sum</a></span><span class="cell-desc">重複ありの組合せ探索</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">22</span><span class="cell-name"><a href="https://leetcode.com/problems/generate-parentheses/" target="_blank" rel="noopener">Generate Parentheses</a></span><span class="cell-desc">制約付き生成と枝刈り</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">79</span><span class="cell-name"><a href="https://leetcode.com/problems/word-search/" target="_blank" rel="noopener">Word Search</a></span><span class="cell-desc">グリッド上の DFS バックトラッキング</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="hard"><span class="pnum">51</span><span class="cell-name"><a href="https://leetcode.com/problems/n-queens/" target="_blank" rel="noopener">N-Queens</a></span><span class="cell-desc">制約充足と枝刈りの王道</span><span class="cell-diff"><span class="tag hard">Hard</span></span></li>
     </ul>
   </section>
 
@@ -401,19 +427,18 @@
   <section class="topic" id="c13">
     <div class="topic-head">
       <h2>13. 動的計画法</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第8章 Dynamic Programming</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> アルゴリズム戦略</span>
     </div>
     <p class="topic-desc">部分問題の重なりと最適部分構造。メモ化（トップダウン）と表計算（ボトムアップ）の両アプローチ。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">70</span><span class="cell-name"><a href="https://leetcode.com/problems/climbing-stairs/" target="_blank" rel="noopener">Climbing Stairs</a></span><span class="diff easy">Easy</span></div><p class="teach">DP の入門（1次元）</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">198</span><span class="cell-name"><a href="https://leetcode.com/problems/house-robber/" target="_blank" rel="noopener">House Robber</a></span><span class="diff medium">Medium</span></div><p class="teach">選択・非選択の遷移</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">322</span><span class="cell-name"><a href="https://leetcode.com/problems/coin-change/" target="_blank" rel="noopener">Coin Change</a></span><span class="diff medium">Medium</span></div><p class="teach">無制限ナップサック型</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">300</span><span class="cell-name"><a href="https://leetcode.com/problems/longest-increasing-subsequence/" target="_blank" rel="noopener">Longest Increasing Subsequence</a></span><span class="diff medium">Medium</span></div><p class="teach">部分列 DP・二分探索高速化</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">1143</span><span class="cell-name"><a href="https://leetcode.com/problems/longest-common-subsequence/" target="_blank" rel="noopener">Longest Common Subsequence</a></span><span class="diff medium">Medium</span></div><p class="teach">2次元 DP の基本形</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">416</span><span class="cell-name"><a href="https://leetcode.com/problems/partition-equal-subset-sum/" target="_blank" rel="noopener">Partition Equal Subset Sum</a></span><span class="diff medium">Medium</span></div><p class="teach">0/1 ナップサック</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">139</span><span class="cell-name"><a href="https://leetcode.com/problems/word-break/" target="_blank" rel="noopener">Word Break</a></span><span class="diff medium">Medium</span></div><p class="teach">文字列の分割 DP</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">72</span><span class="cell-name"><a href="https://leetcode.com/problems/edit-distance/" target="_blank" rel="noopener">Edit Distance</a></span><span class="diff medium">Medium</span></div><p class="teach">編集距離（2次元 DP）</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">70</span><span class="cell-name"><a href="https://leetcode.com/problems/climbing-stairs/" target="_blank" rel="noopener">Climbing Stairs</a></span><span class="cell-desc">DP の入門（1次元）</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">198</span><span class="cell-name"><a href="https://leetcode.com/problems/house-robber/" target="_blank" rel="noopener">House Robber</a></span><span class="cell-desc">選択・非選択の遷移</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">322</span><span class="cell-name"><a href="https://leetcode.com/problems/coin-change/" target="_blank" rel="noopener">Coin Change</a></span><span class="cell-desc">無制限ナップサック型</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">300</span><span class="cell-name"><a href="https://leetcode.com/problems/longest-increasing-subsequence/" target="_blank" rel="noopener">Longest Increasing Subsequence</a></span><span class="cell-desc">部分列 DP・二分探索高速化</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">1143</span><span class="cell-name"><a href="https://leetcode.com/problems/longest-common-subsequence/" target="_blank" rel="noopener">Longest Common Subsequence</a></span><span class="cell-desc">2次元 DP の基本形</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">416</span><span class="cell-name"><a href="https://leetcode.com/problems/partition-equal-subset-sum/" target="_blank" rel="noopener">Partition Equal Subset Sum</a></span><span class="cell-desc">0/1 ナップサック</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">139</span><span class="cell-name"><a href="https://leetcode.com/problems/word-break/" target="_blank" rel="noopener">Word Break</a></span><span class="cell-desc">文字列の分割 DP</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">72</span><span class="cell-name"><a href="https://leetcode.com/problems/edit-distance/" target="_blank" rel="noopener">Edit Distance</a></span><span class="cell-desc">編集距離（2次元 DP）</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
     </ul>
   </section>
 
@@ -421,26 +446,21 @@
   <section class="topic" id="c14">
     <div class="topic-head">
       <h2>14. 文字列マッチング</h2>
-      <span class="ref-chip"><span class="ref-label">教科書</span> Skiena 第3・21章（文字列）</span>
-      <span class="ref-chip"><span class="ref-label">CS2023</span> 文字列照合</span>
     </div>
     <p class="topic-desc">部分文字列検索、パターン照合、回文。素朴法から KMP の考え方へつなげます。</p>
     <ul class="prob">
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">28</span><span class="cell-name"><a href="https://leetcode.com/problems/find-the-index-of-the-first-occurrence-in-a-string/" target="_blank" rel="noopener">Find the Index of the First Occurrence in a String</a></span><span class="diff easy">Easy</span></div><p class="teach">部分文字列検索（KMP の入口）</p></li>
-        <li class="prob-item" data-diff="easy"><div class="prob-row"><span class="pnum">459</span><span class="cell-name"><a href="https://leetcode.com/problems/repeated-substring-pattern/" target="_blank" rel="noopener">Repeated Substring Pattern</a></span><span class="diff easy">Easy</span></div><p class="teach">周期性とパターン照合</p></li>
-        <li class="prob-item" data-diff="medium"><div class="prob-row"><span class="pnum">5</span><span class="cell-name"><a href="https://leetcode.com/problems/longest-palindromic-substring/" target="_blank" rel="noopener">Longest Palindromic Substring</a></span><span class="diff medium">Medium</span></div><p class="teach">中心展開・回文判定</p></li>
-        <li class="prob-item" data-diff="hard"><div class="prob-row"><span class="pnum">214</span><span class="cell-name"><a href="https://leetcode.com/problems/shortest-palindrome/" target="_blank" rel="noopener">Shortest Palindrome</a></span><span class="diff hard">Hard</span></div><p class="teach">KMP の接頭辞関数の応用</p></li>
+        <li class="prob-head"><span>No.</span><span>問題</span><span>ポイント</span><span class="h-diff">難易度</span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">28</span><span class="cell-name"><a href="https://leetcode.com/problems/find-the-index-of-the-first-occurrence-in-a-string/" target="_blank" rel="noopener">Find the Index of the First Occurrence in a String</a></span><span class="cell-desc">部分文字列検索（KMP の入口）</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="easy"><span class="pnum">459</span><span class="cell-name"><a href="https://leetcode.com/problems/repeated-substring-pattern/" target="_blank" rel="noopener">Repeated Substring Pattern</a></span><span class="cell-desc">周期性とパターン照合</span><span class="cell-diff"><span class="tag easy">Easy</span></span></li>
+        <li class="prob-item" data-diff="medium"><span class="pnum">5</span><span class="cell-name"><a href="https://leetcode.com/problems/longest-palindromic-substring/" target="_blank" rel="noopener">Longest Palindromic Substring</a></span><span class="cell-desc">中心展開・回文判定</span><span class="cell-diff"><span class="tag medium">Medium</span></span></li>
+        <li class="prob-item" data-diff="hard"><span class="pnum">214</span><span class="cell-name"><a href="https://leetcode.com/problems/shortest-palindrome/" target="_blank" rel="noopener">Shortest Palindrome</a></span><span class="cell-desc">KMP の接頭辞関数の応用</span><span class="cell-diff"><span class="tag hard">Hard</span></span></li>
     </ul>
   </section>
 
   <footer>
-    <p><strong>ref.</strong></p>
-    <p>・ACM/IEEE-CS/AAAI <a href="https://csed.acm.org/" target="_blank" rel="noopener">Computer Science Curricula 2023 (CS2023)</a>
-       — AL (Algorithmic Foundations) / Fundamental Data Structures and Algorithms</p>
-    <p>・Steven S. Skiena, <a href="https://www.algorist.com/" target="_blank" rel="noopener">The Algorithm Design Manual</a>, 3rd Edition（丸善出版 訳書：
-       <a href="https://www.maruzen-publishing.co.jp/book/b10122540.html" target="_blank" rel="noopener">上巻</a>・
-       <a href="https://www.maruzen-publishing.co.jp/book/b10122541.html" target="_blank" rel="noopener">下巻</a>）</p>
+    <p>Created by <a href="https://x.com/popyson1648" target="_blank" rel="noopener">@popyson1648</a></p>
   </footer>
+
 </div>
 
 <button class="back-top" id="backTop" aria-label="トップへ戻る">↑</button>
@@ -550,4 +570,3 @@
 </script>
 </body>
 </html>
-
